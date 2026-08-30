@@ -82,10 +82,12 @@ export default function AyudaPage() {
           horas hábiles.
         </p>
         <Link
-          href="mailto:soporte@mail.mx"
+          href="https://wa.me/526185175068"
+          target="_blank"
+          rel="noreferrer"
           className="inline-flex rounded-rd-md bg-rd-violet px-5 py-2.5 text-sm font-semibold text-white hover:bg-rd-navy transition"
         >
-          soporte@rutadidactica.mx
+          WhatsApp: 618 517 5068
         </Link>
       </section>
     </div>
