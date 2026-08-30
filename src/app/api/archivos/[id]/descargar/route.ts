@@ -62,11 +62,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const user = await prisma.user.findUnique({ where: { id: sessionUser.userId } });
+  const titulo = publicacion
+    ? `${TIPO_LABEL[tipo]} · Grado ${publicacion.grado} · ${publicacion.periodo}`
+    : `${TIPO_LABEL[tipo]} · Grado ${archivoDrive.grado} · ${archivoDrive.trimestre}`;
   const sealed = await sealPdf(bytes, {
     nombre: user?.name || sessionUser.email,
     email: sessionUser.email,
     orderId: orderId ?? "VISTA-PREVIA-ADMIN",
-    titulo: `${TIPO_LABEL[tipo]} · Grado ${publicacion.grado} · ${publicacion.periodo}`,
+    titulo,
   });
 
   return new NextResponse(new Uint8Array(sealed), {

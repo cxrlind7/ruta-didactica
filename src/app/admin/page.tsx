@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DocIcon, EditIcon, ImageIcon, ListIcon, PlusIcon, TableIcon, TrashIcon, UploadIcon } from "@/components/icons";
+import { ChevronRightIcon, DocIcon, EditIcon, ImageIcon, ListIcon, PlusIcon, TableIcon, TrashIcon, UploadIcon } from "@/components/icons";
 
 type ArchivoNode = {
   key: string;
@@ -374,6 +374,7 @@ function TipoCard({
   const Icon = meta.icon;
   const ingested = tipo.archivos.filter((a) => a.ingested).length;
   const [adding, setAdding] = useState(false);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   return (
     <section className="rounded-rd-md border border-slate-200 bg-white overflow-hidden">
@@ -421,6 +422,8 @@ function TipoCard({
               archivo={a}
               tipo={tipo.tipo}
               busy={busyId === a.archivoDriveId}
+              expanded={expandedKey === a.key}
+              onToggle={() => setExpandedKey((k) => (k === a.key ? null : a.key))}
               onUpload={(file) => onUpload(a.archivoDriveId, file)}
               onDelete={() => onDelete(a.archivoDriveId)}
               onEdit={(data) => onEdit(a.archivoDriveId, data)}
@@ -501,6 +504,8 @@ function ArchivoRow({
   archivo,
   tipo,
   busy,
+  expanded,
+  onToggle,
   onUpload,
   onDelete,
   onEdit,
@@ -508,6 +513,8 @@ function ArchivoRow({
   archivo: ArchivoNode;
   tipo: TipoKey;
   busy: boolean;
+  expanded: boolean;
+  onToggle: () => void;
   onUpload: (file: File) => void;
   onDelete: () => void;
   onEdit: (data: { label?: string; nombreArchivo?: string }) => Promise<ActionResult>;
@@ -519,6 +526,11 @@ function ArchivoRow({
   const [nombreArchivo, setNombreArchivo] = useState(archivo.nombreArchivo);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  function handleHeaderClick() {
+    setEditing(false);
+    onToggle();
+  }
 
   function startEditing() {
     setLabel(archivo.label);
@@ -536,45 +548,6 @@ function ArchivoRow({
     else setFormError(result.error);
   }
 
-  if (editing) {
-    return (
-      <li className="space-y-2 px-4 py-2.5 text-xs">
-        <input
-          type="text"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="Nombre del recurso"
-          className="w-full rounded-rd-sm border border-slate-200 px-2 py-1.5 text-xs focus:border-rd-violet focus:outline-none"
-        />
-        <input
-          type="text"
-          value={nombreArchivo}
-          onChange={(e) => setNombreArchivo(e.target.value)}
-          placeholder="Nombre del archivo"
-          className="w-full rounded-rd-sm border border-slate-200 px-2 py-1.5 font-mono text-[10.5px] focus:border-rd-violet focus:outline-none"
-        />
-        {formError && <p className="text-[11px] font-medium text-red-600">{formError}</p>}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={saving || !label.trim() || !nombreArchivo.trim()}
-            onClick={submitEdit}
-            className="rounded-rd-sm bg-rd-violet px-3 py-1.5 text-xs font-semibold text-white hover:bg-rd-navy disabled:opacity-40"
-          >
-            {saving ? "Guardando…" : "Guardar"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditing(false)}
-            className="rounded-rd-sm px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-rd-navy"
-          >
-            Cancelar
-          </button>
-        </div>
-      </li>
-    );
-  }
-
   return (
     <li
       onDragOver={(e) => {
@@ -588,86 +561,137 @@ function ArchivoRow({
         const file = e.dataTransfer.files?.[0];
         if (file) onUpload(file);
       }}
-      className={`flex items-center justify-between gap-3 px-4 py-2.5 text-xs transition-colors ${
-        dragOver ? "bg-rd-sky/10" : ""
-      }`}
+      className={`text-xs transition-colors ${dragOver ? "bg-rd-sky/10" : ""}`}
     >
-      <div className="min-w-0">
-        <p className="font-semibold text-rd-navy">{archivo.label}</p>
-        <p className="truncate font-mono text-[10.5px] text-slate-400" title={archivo.nombreArchivo}>
-          {archivo.nombreArchivo}
-        </p>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        {archivo.archivoDriveId && (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={startEditing}
-            aria-label="Editar nombre del recurso o del archivo"
-            className="rounded-rd-sm p-1.5 text-slate-400 hover:bg-slate-100 hover:text-rd-navy disabled:opacity-40"
-          >
-            <EditIcon className="h-3.5 w-3.5" />
-          </button>
-        )}
-        {archivo.ingested ? (
-          <>
-            <span className="hidden text-slate-400 sm:inline">{formatSize(archivo.sizeBytes)}</span>
-            <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700 ring-1 ring-emerald-200">
-              Subido
-            </span>
-            {tipo === "fichas" || tipo === "diapositiva" ? (
-              <a
-                href={`/visor/${archivo.archivoDriveId}`}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
-              >
-                Ver
-              </a>
-            ) : (
-              <a
-                href={`/api/archivos/${archivo.archivoDriveId}/descargar`}
-                className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
-              >
-                Descargar
-              </a>
-            )}
-            <button
-              type="button"
-              disabled={busy}
-              onClick={onDelete}
-              aria-label={archivo.manual ? "Eliminar recurso" : `Retirar ${archivo.nombreArchivo}`}
-              title={archivo.manual ? "Eliminar recurso" : "Retirar archivo"}
-              className="rounded-rd-sm p-1.5 text-red-500 hover:bg-red-50 disabled:opacity-40"
-            >
-              <TrashIcon className="h-3.5 w-3.5" />
-            </button>
-          </>
-        ) : (
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-500">Pendiente</span>
-        )}
-        <input
-          ref={inputRef}
-          type="file"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) onUpload(file);
-            e.target.value = "";
-          }}
+      <button
+        type="button"
+        onClick={handleHeaderClick}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50"
+      >
+        <ChevronRightIcon
+          className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${expanded ? "rotate-90" : ""}`}
         />
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => inputRef.current?.click()}
-          aria-label={archivo.ingested ? "Reemplazar archivo" : "Subir archivo"}
-          className="flex items-center gap-1 rounded-rd-sm bg-rd-violet px-2 py-1.5 font-semibold text-white hover:bg-rd-navy disabled:opacity-50"
-        >
-          <UploadIcon className="h-3.5 w-3.5" />
-          {busy ? "…" : archivo.ingested ? "Reemplazar" : "Subir"}
-        </button>
-      </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-rd-navy">{archivo.label}</p>
+          <p className="truncate font-mono text-[10.5px] text-slate-400" title={archivo.nombreArchivo}>
+            {archivo.nombreArchivo}
+          </p>
+        </div>
+        {archivo.ingested ? (
+          <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700 ring-1 ring-emerald-200">
+            Subido
+          </span>
+        ) : (
+          <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-500">Pendiente</span>
+        )}
+      </button>
+
+      {expanded && (
+        <div className="border-t border-slate-100 bg-slate-50/70 px-4 py-3">
+          {editing ? (
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="Nombre del recurso"
+                className="w-full rounded-rd-sm border border-slate-200 px-2 py-1.5 text-xs focus:border-rd-violet focus:outline-none"
+              />
+              <input
+                type="text"
+                value={nombreArchivo}
+                onChange={(e) => setNombreArchivo(e.target.value)}
+                placeholder="Nombre del archivo"
+                className="w-full rounded-rd-sm border border-slate-200 px-2 py-1.5 font-mono text-[10.5px] focus:border-rd-violet focus:outline-none"
+              />
+              {formError && <p className="text-[11px] font-medium text-red-600">{formError}</p>}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={saving || !label.trim() || !nombreArchivo.trim()}
+                  onClick={submitEdit}
+                  className="rounded-rd-sm bg-rd-violet px-3 py-1.5 text-xs font-semibold text-white hover:bg-rd-navy disabled:opacity-40"
+                >
+                  {saving ? "Guardando…" : "Guardar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  className="rounded-rd-sm px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-rd-navy"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              {archivo.ingested && (
+                <span className="text-slate-400">{formatSize(archivo.sizeBytes)}</span>
+              )}
+              {archivo.archivoDriveId && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={startEditing}
+                  className="flex items-center gap-1 rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky disabled:opacity-40"
+                >
+                  <EditIcon className="h-3.5 w-3.5" />
+                  Editar
+                </button>
+              )}
+              {archivo.ingested &&
+                (tipo === "fichas" || tipo === "diapositiva" ? (
+                  <a
+                    href={`/visor/${archivo.archivoDriveId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
+                  >
+                    Ver
+                  </a>
+                ) : (
+                  <a
+                    href={`/api/archivos/${archivo.archivoDriveId}/descargar`}
+                    className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
+                  >
+                    Descargar
+                  </a>
+                ))}
+              <input
+                ref={inputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) onUpload(file);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => inputRef.current?.click()}
+                className="flex items-center gap-1 rounded-rd-sm bg-rd-violet px-2 py-1.5 font-semibold text-white hover:bg-rd-navy disabled:opacity-50"
+              >
+                <UploadIcon className="h-3.5 w-3.5" />
+                {busy ? "…" : archivo.ingested ? "Reemplazar" : "Subir"}
+              </button>
+              {archivo.archivoDriveId && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={onDelete}
+                  className="flex items-center gap-1 rounded-rd-sm p-1.5 text-red-500 hover:bg-red-50 disabled:opacity-40"
+                >
+                  <TrashIcon className="h-3.5 w-3.5" />
+                  {archivo.manual ? "Eliminar recurso" : "Retirar archivo"}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </li>
   );
 }

@@ -31,8 +31,17 @@ export function coverageMatches(ent: EntitlementLike, granularity: Granularity, 
   );
 }
 
+// Cobertura para archivos manuales (sin fila de Publicacion): no tenemos
+// periodo/mesComercial, asi que solo se puede verificar a nivel trimestre o
+// ciclo -- una compra de quincena/mes no alcanza a desbloquear un recurso
+// manual, porque no hay forma de saber a que quincena/mes corresponde.
+export function manualCoverageMatches(ent: EntitlementLike, trimestre: string): boolean {
+  if (ent.cobertura === "ciclo") return true;
+  return ent.cobertura === "trimestre" && ent.periodoComprado === trimestre;
+}
+
 export type AccessResult =
-  | { ok: true; publicacion: Publicacion; tipo: TipoKey; archivoDrive: ArchivoDrive; orderId: string | null }
+  | { ok: true; publicacion: Publicacion | null; tipo: TipoKey; archivoDrive: ArchivoDrive; orderId: string | null }
   | { ok: false; reason: "not_found" }
   | { ok: false; reason: "not_ingested" }
   | { ok: false; reason: "not_published"; publicarEl: Date }
@@ -44,6 +53,20 @@ export async function checkAccess(userId: string, archivoDriveId: string): Promi
   if (!archivoDrive.path || !archivoDrive.ingestedAt) return { ok: false, reason: "not_ingested" };
 
   const tipo = archivoDrive.tipo as TipoKey;
+
+  if (archivoDrive.manual) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (user?.role === "admin") return { ok: true, publicacion: null, tipo, archivoDrive, orderId: null };
+    if (archivoDrive.grado == null || !archivoDrive.trimestre) return { ok: false, reason: "not_found" };
+
+    const entitlements = await prisma.entitlement.findMany({ where: { userId, grado: archivoDrive.grado } });
+    const matched = entitlements.find(
+      (ent) => ent.ruta && RUTA_UNLOCKS[ent.ruta]?.includes(tipo) && manualCoverageMatches(ent, archivoDrive.trimestre!)
+    );
+    if (!matched) return { ok: false, reason: "not_purchased" };
+    return { ok: true, publicacion: null, tipo, archivoDrive, orderId: matched.orderId };
+  }
+
   const nombre = archivoDrive.nombreArchivo;
 
   const whereByTipo = {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Publicacion } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
-import { RUTA_UNLOCKS, TipoKey, coverageMatches, Granularity } from "@/lib/motorReglas";
+import { RUTA_UNLOCKS, TipoKey, coverageMatches, manualCoverageMatches, Granularity } from "@/lib/motorReglas";
 
 type Slot = { tipo: TipoKey; granularity: Granularity; label: string; nombreArchivo: string };
 
@@ -112,6 +112,24 @@ export async function GET() {
         nombreArchivo: c.nombreArchivo,
       });
     }
+  }
+
+  // Archivos agregados a mano desde el panel admin: sin fila de Publicacion,
+  // solo se pueden desbloquear a nivel trimestre o ciclo (no hay
+  // periodo/mesComercial que comparar contra una compra de quincena/mes).
+  for (const a of archivos) {
+    if (!a.manual || a.grado == null || !a.trimestre || !a.ingestedAt) continue;
+    if (!gradosAConsultar.includes(a.grado)) continue;
+    const tipo = a.tipo as TipoKey;
+    if (
+      !isAdmin &&
+      !entitlements.some(
+        (ent) => ent.grado === a.grado && ent.ruta && RUTA_UNLOCKS[ent.ruta]?.includes(tipo) && manualCoverageMatches(ent, a.trimestre!)
+      )
+    ) {
+      continue;
+    }
+    addSlot(a.grado, a.trimestre, { tipo, granularity: "trimestre", label: a.label || a.nombreArchivo, nombreArchivo: a.nombreArchivo });
   }
 
   const gradosOut: GradoOut[] = Array.from(tree.entries())
