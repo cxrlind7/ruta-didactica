@@ -6,6 +6,7 @@ import Link from "next/link";
 import { DocIcon, ImageIcon, ListIcon, TableIcon } from "@/components/icons";
 
 const PdfViewerModal = dynamic(() => import("@/components/PdfViewerModal"), { ssr: false });
+const DocxViewerModal = dynamic(() => import("@/components/DocxViewerModal"), { ssr: false });
 
 type TipoKey = "planeacion" | "fichas" | "diapositiva" | "seguimiento";
 type ArchivoOut = { archivoDriveId: string; label: string; nombreArchivo: string };
@@ -32,7 +33,7 @@ const GRADO_LABEL: Record<number, string> = { 1: "1º", 2: "2º", 3: "3º", 4: "
 export default function BibliotecaReal() {
   const [grados, setGrados] = useState<GradoOut[] | null>(null);
   const [selectedTrimestre, setSelectedTrimestre] = useState<Record<number, string>>({});
-  const [viewerId, setViewerId] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ kind: "pdf" | "docx"; id: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/biblioteca")
@@ -88,7 +89,8 @@ export default function BibliotecaReal() {
               {trimestreNode?.tipos.map((tipo) => {
                 const meta = TIPO_META[tipo.tipo];
                 const Icon = meta.icon;
-                const viewable = tipo.tipo === "fichas" || tipo.tipo === "diapositiva";
+                const viewablePdf = tipo.tipo === "fichas" || tipo.tipo === "diapositiva";
+                const viewableDocx = tipo.tipo === "planeacion";
                 return (
                   <div key={tipo.tipo} className="rounded-rd-sm border border-slate-100">
                     <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2">
@@ -99,22 +101,34 @@ export default function BibliotecaReal() {
                       {tipo.archivos.map((a) => (
                         <li key={a.archivoDriveId} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
                           <span className="text-rd-navy">{a.label}</span>
-                          {viewable ? (
-                            <button
-                              type="button"
-                              onClick={() => setViewerId(a.archivoDriveId)}
-                              className="rounded-rd-sm bg-rd-violet px-2 py-1 font-semibold text-white hover:bg-rd-navy"
-                            >
-                              Ver
-                            </button>
-                          ) : (
-                            <a
-                              href={`/api/archivos/${a.archivoDriveId}/descargar`}
-                              className="rounded-rd-sm bg-rd-violet px-2 py-1 font-semibold text-white hover:bg-rd-navy"
-                            >
-                              Descargar
-                            </a>
-                          )}
+                          <span className="flex shrink-0 gap-1">
+                            {viewablePdf && (
+                              <button
+                                type="button"
+                                onClick={() => setViewer({ kind: "pdf", id: a.archivoDriveId })}
+                                className="rounded-rd-sm bg-rd-violet px-2 py-1 font-semibold text-white hover:bg-rd-navy"
+                              >
+                                Ver
+                              </button>
+                            )}
+                            {viewableDocx && (
+                              <button
+                                type="button"
+                                onClick={() => setViewer({ kind: "docx", id: a.archivoDriveId })}
+                                className="rounded-rd-sm bg-rd-violet px-2 py-1 font-semibold text-white hover:bg-rd-navy"
+                              >
+                                Ver
+                              </button>
+                            )}
+                            {!viewablePdf && (
+                              <a
+                                href={`/api/archivos/${a.archivoDriveId}/descargar`}
+                                className="rounded-rd-sm border border-rd-violet px-2 py-1 font-semibold text-rd-violet hover:bg-rd-violet/10"
+                              >
+                                Descargar
+                              </a>
+                            )}
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -126,7 +140,8 @@ export default function BibliotecaReal() {
         );
       })}
 
-      {viewerId && <PdfViewerModal archivoDriveId={viewerId} onClose={() => setViewerId(null)} />}
+      {viewer?.kind === "pdf" && <PdfViewerModal archivoDriveId={viewer.id} onClose={() => setViewer(null)} />}
+      {viewer?.kind === "docx" && <DocxViewerModal archivoDriveId={viewer.id} onClose={() => setViewer(null)} />}
     </div>
   );
 }

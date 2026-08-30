@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ChevronRightIcon, DocIcon, EditIcon, ImageIcon, ListIcon, PlusIcon, TableIcon, TrashIcon, UploadIcon } from "@/components/icons";
 
 const PdfViewerModal = dynamic(() => import("@/components/PdfViewerModal"), { ssr: false });
+const DocxViewerModal = dynamic(() => import("@/components/DocxViewerModal"), { ssr: false });
 
 type ArchivoNode = {
   key: string;
@@ -69,7 +70,7 @@ export default function AdminPage() {
   const [selectedTrimestre, setSelectedTrimestre] = useState<string | null>(null);
   const [expandedTipo, setExpandedTipo] = useState<TipoKey | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [viewerId, setViewerId] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ kind: "pdf" | "docx"; id: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadTree = useCallback(() => {
@@ -321,7 +322,7 @@ export default function AdminPage() {
                 onDelete={handleDelete}
                 onEdit={handleEditArchivo}
                 onCreate={handleCreateArchivo}
-                onView={setViewerId}
+                onView={(id, kind) => setViewer({ kind, id })}
               />
             ))}
             {gradoActivo && gradoActivo.trimestres.length === 0 && (
@@ -331,7 +332,8 @@ export default function AdminPage() {
         </>
       )}
 
-      {viewerId && <PdfViewerModal archivoDriveId={viewerId} onClose={() => setViewerId(null)} />}
+      {viewer?.kind === "pdf" && <PdfViewerModal archivoDriveId={viewer.id} onClose={() => setViewer(null)} />}
+      {viewer?.kind === "docx" && <DocxViewerModal archivoDriveId={viewer.id} onClose={() => setViewer(null)} />}
     </div>
   );
 }
@@ -385,7 +387,7 @@ function TipoCard({
   onDelete: (id: string) => void;
   onEdit: (id: string, data: { label?: string; nombreArchivo?: string }) => Promise<ActionResult>;
   onCreate: (data: { tipo: TipoKey; grado: number; trimestre: string; label: string; nombreArchivo: string }) => Promise<ActionResult>;
-  onView: (id: string) => void;
+  onView: (id: string, kind: "pdf" | "docx") => void;
 }) {
   const meta = TIPO_META[tipo.tipo];
   const Icon = meta.icon;
@@ -462,7 +464,7 @@ function TipoCard({
                   onUpload={(file) => onUpload(a.archivoDriveId, file)}
                   onDelete={() => onDelete(a.archivoDriveId)}
                   onEdit={(data) => onEdit(a.archivoDriveId, data)}
-                  onView={() => onView(a.archivoDriveId)}
+                  onView={(kind) => onView(a.archivoDriveId, kind)}
                 />
               ))}
             </ul>
@@ -557,7 +559,7 @@ function ArchivoRow({
   onUpload: (file: File) => void;
   onDelete: () => void;
   onEdit: (data: { label?: string; nombreArchivo?: string }) => Promise<ActionResult>;
-  onView: () => void;
+  onView: (kind: "pdf" | "docx") => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -680,23 +682,32 @@ function ArchivoRow({
                   Editar
                 </button>
               )}
-              {archivo.ingested &&
-                (tipo === "fichas" || tipo === "diapositiva" ? (
-                  <button
-                    type="button"
-                    onClick={onView}
-                    className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
-                  >
-                    Ver
-                  </button>
-                ) : (
-                  <a
-                    href={`/api/archivos/${archivo.archivoDriveId}/descargar`}
-                    className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
-                  >
-                    Descargar
-                  </a>
-                ))}
+              {archivo.ingested && (tipo === "fichas" || tipo === "diapositiva") && (
+                <button
+                  type="button"
+                  onClick={() => onView("pdf")}
+                  className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
+                >
+                  Ver
+                </button>
+              )}
+              {archivo.ingested && tipo === "planeacion" && (
+                <button
+                  type="button"
+                  onClick={() => onView("docx")}
+                  className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
+                >
+                  Ver
+                </button>
+              )}
+              {archivo.ingested && tipo !== "fichas" && tipo !== "diapositiva" && (
+                <a
+                  href={`/api/archivos/${archivo.archivoDriveId}/descargar`}
+                  className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
+                >
+                  Descargar
+                </a>
+              )}
               <input
                 ref={inputRef}
                 type="file"

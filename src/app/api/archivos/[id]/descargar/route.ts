@@ -4,7 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/session";
 import { checkAccess } from "@/lib/motorReglas";
 import { sealPdf } from "@/lib/pdfSeal";
+import { sealDocx, sealXlsx } from "@/lib/officeSeal";
 import { resolveVolumePath } from "@/lib/admin";
+
+const MIME_BY_EXT: Record<string, string> = {
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+};
 
 const REASON_STATUS: Record<string, number> = {
   not_found: 404,
@@ -47,36 +53,47 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { archivoDrive, tipo, publicacion, orderId } = result;
   const bytes = await readFile(resolveVolumePath(archivoDrive.path!));
-  const isSealablePdf = tipo === "fichas" || tipo === "diapositiva";
+  const ext = archivoDrive.nombreArchivo.split(".").pop()?.toLowerCase() ?? "";
 
-  if (!isSealablePdf) {
-    // Planeacion (.docx) y Seguimiento (.xlsx) son plantillas editables:
-    // descarga protegida normal, sin sellado ni visor.
-    return new NextResponse(new Uint8Array(bytes), {
+  const user = await prisma.user.findUnique({ where: { id: sessionUser.userId } });
+  const titulo = publicacion
+    ? `${TIPO_LABEL[tipo]} · Grado ${publicacion.grado} · ${publicacion.periodo}`
+    : `${TIPO_LABEL[tipo]} · Grado ${archivoDrive.grado} · ${archivoDrive.trimestre}`;
+  const sealInfo = {
+    nombre: user?.name || sessionUser.email,
+    email: sessionUser.email,
+    orderId: orderId ?? "VISTA-PREVIA-ADMIN",
+    titulo,
+  };
+
+  if (ext === "pdf") {
+    const sealed = await sealPdf(bytes, sealInfo);
+    return new NextResponse(new Uint8Array(sealed), {
       status: 200,
       headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename="${archivoDrive.nombreArchivo}"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
+  if (ext === "docx" || ext === "xlsx") {
+    const sealed = ext === "docx" ? await sealDocx(bytes, sealInfo) : await sealXlsx(bytes, sealInfo);
+    return new NextResponse(new Uint8Array(sealed), {
+      status: 200,
+      headers: {
+        "Content-Type": MIME_BY_EXT[ext],
         "Content-Disposition": `attachment; filename="${archivoDrive.nombreArchivo}"`,
         "Cache-Control": "no-store",
       },
     });
   }
 
-  const user = await prisma.user.findUnique({ where: { id: sessionUser.userId } });
-  const titulo = publicacion
-    ? `${TIPO_LABEL[tipo]} · Grado ${publicacion.grado} · ${publicacion.periodo}`
-    : `${TIPO_LABEL[tipo]} · Grado ${archivoDrive.grado} · ${archivoDrive.trimestre}`;
-  const sealed = await sealPdf(bytes, {
-    nombre: user?.name || sessionUser.email,
-    email: sessionUser.email,
-    orderId: orderId ?? "VISTA-PREVIA-ADMIN",
-    titulo,
-  });
-
-  return new NextResponse(new Uint8Array(sealed), {
+  return new NextResponse(new Uint8Array(bytes), {
     status: 200,
     headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${archivoDrive.nombreArchivo}"`,
+      "Content-Disposition": `attachment; filename="${archivoDrive.nombreArchivo}"`,
       "Cache-Control": "no-store",
     },
   });
