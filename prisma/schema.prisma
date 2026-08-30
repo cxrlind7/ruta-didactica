@@ -11,6 +11,7 @@ model User {
   email        String        @unique
   name         String?
   passwordHash String?
+  role         String        @default("docente") // docente | admin
   createdAt    DateTime      @default(now())
   orders       Order[]
   entitlements Entitlement[]
@@ -34,6 +35,14 @@ model OrderItem {
   order    Order  @relation(fields: [orderId], references: [id])
   itemId   String
   priceMXN Int
+
+  // Presentes solo para compras del catálogo real (via /api/checkout); los 3
+  // productos de prueba (via /api/orders) los dejan null y siguen usando
+  // solo itemId, como hasta ahora.
+  grado           Int?
+  ruta            String? // BASE | VISUAL | SEGUIMIENTO | INTEGRAL
+  cobertura       String? // quincena | mes | trimestre | ciclo
+  periodoComprado String? // codigo segun cobertura: T1_Q01 | T1_M01 | T1 | CICLO
 }
 
 model Entitlement {
@@ -52,4 +61,54 @@ enum OrderStatus {
   approved
   rejected
   cancelled
+}
+
+// Mirror casi literal de la hoja 05_Matriz_Web del Directorio de
+// Publicaciones (fuente de la verdad del negocio): una fila = grado + ruta +
+// bloque de publicacion. Los nombres *Archivo son los que documenta esa
+// hoja - no siempre calzan con el nombre real del archivo en disco (ver
+// scripts/audit-archivos.ts), por eso el archivo fisico se resuelve por
+// separado en ArchivoDrive.
+model Publicacion {
+  id               String   @id @default(cuid())
+  grado            Int
+  ruta             String // BASE | VISUAL | SEGUIMIENTO | INTEGRAL
+  periodo          String // T1_Q01 ... CA
+  publicarEl       DateTime
+  implementaInicio DateTime
+  implementaFin    DateTime
+  trimestre        String // T1 | T2 | T3 | CA
+  mesComercial     String // T1_M01 ... | CA
+  compraQuincena   String
+  compraMes        String
+  compraTrimestre  String
+  compraCiclo      String // "CICLO"
+
+  planeacionArchivo           String?
+  fichasArchivo                String?
+  diapositivaS01Archivo       String?
+  diapositivaS02Archivo       String?
+  diapositivaS03Archivo       String?
+  seguimientoQuincenaArchivo  String?
+  seguimientoMesArchivo       String?
+  seguimientoTrimestreArchivo String?
+  seguimientoCicloArchivo     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([grado, ruta, periodo])
+}
+
+// Un archivo fisico real, deduplicado por nombre real (no por el nombre que
+// documenta la matriz). Varias filas de Publicacion pueden apuntar al mismo
+// nombreArchivo (ej. Planeacion/Fichas/Diapositivas no dependen de la ruta).
+model ArchivoDrive {
+  id            String    @id @default(cuid())
+  nombreArchivo String    @unique
+  tipo          String // planeacion | fichas | diapositiva | seguimiento
+  path          String? // ruta dentro del volumen de Railway una vez subido
+  sizeBytes     Int?
+  ingestedAt    DateTime?
+  createdAt     DateTime  @default(now())
 }
