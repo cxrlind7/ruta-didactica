@@ -102,6 +102,7 @@ export async function POST(req: NextRequest) {
   });
   if (existingPending) {
     const pref = await createMpPreference({
+      mode: "produccion",
       orderId: existingPending.id,
       title,
       totalMXN: producto.precioMXN,
@@ -134,6 +135,7 @@ export async function POST(req: NextRequest) {
   });
 
   const pref = await createMpPreference({
+    mode: "produccion",
     orderId: order.id,
     title,
     totalMXN: producto.precioMXN,

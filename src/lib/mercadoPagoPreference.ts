@@ -1,4 +1,5 @@
 import { preferenceClient } from "@/lib/mercadopago";
+import type { ModoPago } from "@/lib/modoPago";
 
 // Checkout Pro (a diferencia de la API de Orders usada por el pago con
 // tarjeta): en vez de tokenizar una tarjeta, se crea una preferencia por
@@ -8,6 +9,7 @@ import { preferenceClient } from "@/lib/mercadopago";
 // pago automáticamente sin intervención manual.
 
 export type CreateMpPreferenceInput = {
+  mode: ModoPago;
   orderId: string;
   title: string;
   totalMXN: number;
@@ -22,7 +24,7 @@ export type CreateMpPreferenceResult =
 
 export async function createMpPreference(input: CreateMpPreferenceInput): Promise<CreateMpPreferenceResult> {
   try {
-    const preference = await preferenceClient().create({
+    const preference = await preferenceClient(input.mode).create({
       body: {
         items: [
           {

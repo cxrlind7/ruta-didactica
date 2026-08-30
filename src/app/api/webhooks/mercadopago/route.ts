@@ -3,6 +3,7 @@ import { InvalidWebhookSignatureError, WebhookSignatureValidator } from "mercado
 import { prisma } from "@/lib/prisma";
 import { orderClient, paymentClient } from "@/lib/mercadopago";
 import { approveOrder, rejectOrder } from "@/lib/grantEntitlements";
+import type { ModoPago } from "@/lib/modoPago";
 
 export async function POST(req: NextRequest) {
   const secret = process.env.MP_WEBHOOK_SECRET;
@@ -53,9 +54,15 @@ export async function POST(req: NextRequest) {
   // notifica con type "order" y se resuelve más abajo con orderClient().
   const topic = body?.type ?? req.nextUrl.searchParams.get("type") ?? "order";
 
+  // Credenciales de prueba y de producción son entornos separados en
+  // Mercado Pago: un recurso creado con TEST- solo se puede volver a
+  // consultar con TEST-, nunca con el token de producción y viceversa.
+  // Mercado Pago manda `live_mode` en cada notificación para distinguirlos.
+  const mode: ModoPago = body?.live_mode === false ? "prueba" : "produccion";
+
   if (topic === "payment") {
     try {
-      const payment = await paymentClient().get({ id: dataId });
+      const payment = await paymentClient(mode).get({ id: dataId });
       const localOrder = await prisma.order.findFirst({
         where: { OR: [{ mpOrderId: dataId }, { id: payment.external_reference ?? undefined }] },
       });
@@ -84,7 +91,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const mpOrder = await orderClient().get({ id: dataId });
+    const mpOrder = await orderClient(mode).get({ id: dataId });
 
     const localOrder = await prisma.order.findFirst({
       where: { OR: [{ mpOrderId: dataId }, { id: mpOrder.external_reference ?? undefined }] },

@@ -1,19 +1,35 @@
 import { MercadoPagoConfig, Order, Payment, Preference } from "mercadopago";
+import type { ModoPago } from "@/lib/modoPago";
 
-function config() {
-  const accessToken = process.env.MP_ACCESS_TOKEN;
-  if (!accessToken) throw new Error("Falta MP_ACCESS_TOKEN");
-  return new MercadoPagoConfig({ accessToken, options: { timeout: 8000 } });
+// Credenciales de prueba (TEST-...) y de producción (APP_USR-...) son de
+// aplicaciones/entornos separados en Mercado Pago -- un recurso creado con
+// una no se puede consultar ni cobrar con la otra. Qué credencial usar en
+// cada momento depende del modo de cobro global (ver modoPago.ts), no de un
+// único token fijo como antes.
+export function accessTokenFor(mode: ModoPago): string {
+  const key = mode === "produccion" ? "MP_ACCESS_TOKEN_PROD" : "MP_ACCESS_TOKEN_TEST";
+  const token = process.env[key];
+  if (!token) throw new Error(`Falta ${key}`);
+  return token;
 }
 
-export function orderClient() {
-  return new Order(config());
+export function publicKeyFor(mode: ModoPago): string | null {
+  const key = mode === "produccion" ? "MP_PUBLIC_KEY_PROD" : "MP_PUBLIC_KEY_TEST";
+  return process.env[key] ?? null;
 }
 
-export function paymentClient() {
-  return new Payment(config());
+function config(mode: ModoPago) {
+  return new MercadoPagoConfig({ accessToken: accessTokenFor(mode), options: { timeout: 8000 } });
 }
 
-export function preferenceClient() {
-  return new Preference(config());
+export function orderClient(mode: ModoPago) {
+  return new Order(config(mode));
+}
+
+export function paymentClient(mode: ModoPago) {
+  return new Payment(config(mode));
+}
+
+export function preferenceClient(mode: ModoPago) {
+  return new Preference(config(mode));
 }

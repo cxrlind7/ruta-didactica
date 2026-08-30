@@ -6,10 +6,12 @@ import { formatMXN } from "@/lib/data";
 
 // Igual que RealPaymentCheckout.tsx (los 3 productos de prueba) pero
 // apuntando a /api/checkout -- el catálogo real (grado+ruta+cobertura+
-// periodo) -- para el modo de pruebas del selector de compra en /planes.
-if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_MP_PUBLIC_KEY) {
-  initMercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY, { locale: "es-MX" });
-}
+// periodo). Se usa tanto en modo de pruebas como en producción (si se
+// permite tarjeta), así que la public key no puede ser un env var NEXT_PUBLIC
+// fijo en build time -- llega como prop (ver /api/settings) según el modo
+// vigente, y solo se inicializa el SDK de Mercado Pago una vez que se sabe
+// cuál usar.
+let initializedPublicKey: string | null = null;
 
 type Props = {
   grado: number;
@@ -19,6 +21,7 @@ type Props = {
   totalMXN: number;
   payerEmail: string;
   payerName: string;
+  publicKey: string | null;
   onApproved: (orderId: string) => void;
 };
 
@@ -43,6 +46,7 @@ export default function RealCatalogCardCheckout({
   totalMXN,
   payerEmail,
   payerName,
+  publicKey,
   onApproved,
 }: Props) {
   const [phase, setPhase] = useState<Phase>("form");
@@ -54,6 +58,19 @@ export default function RealCatalogCardCheckout({
       if (pollTimer.current) clearTimeout(pollTimer.current);
     };
   }, []);
+
+  // El Brick de CardPayment (más abajo) espera que el SDK de Mercado Pago ya
+  // esté inicializado con la public key correcta antes de montarse -- como
+  // sus propios efectos internos corren antes que los de este componente
+  // padre, un useEffect normal llegaría tarde. Se llama en el cuerpo del
+  // componente (no en un efecto) porque es idempotente -- el guard evita
+  // reinicializar si ya se hizo con la misma key -- igual que antes lo hacía
+  // el código a nivel de módulo, solo que ahora la key llega por prop.
+  if (publicKey && initializedPublicKey !== publicKey) {
+    initMercadoPago(publicKey, { locale: "es-MX" });
+    initializedPublicKey = publicKey;
+  }
+  const sdkReady = !!publicKey && initializedPublicKey === publicKey;
 
   function pollStatus(orderId: string, attempt: number) {
     fetch(`/api/orders/${orderId}/status`)
@@ -121,15 +138,16 @@ export default function RealCatalogCardCheckout({
     );
   }
 
+  if (!sdkReady) {
+    return <p className="text-xs text-slate-400">Cargando formulario de pago…</p>;
+  }
+
   return (
     <div className="space-y-3">
       {message && phase !== "form" && (
         <p className="rounded-rd-sm bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{message}</p>
       )}
-      <p className="text-xs text-slate-400">
-        Pago de prueba con Mercado Pago · Total {formatMXN(totalMXN)} · usa una tarjeta de prueba de tu cuenta
-        vendedora.
-      </p>
+      <p className="text-xs text-slate-400">Total {formatMXN(totalMXN)}</p>
       <CardPayment
         initialization={{ amount: totalMXN, payer: { email: payerEmail || undefined } }}
         onSubmit={handleSubmit}

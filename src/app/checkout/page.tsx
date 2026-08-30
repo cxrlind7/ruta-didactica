@@ -32,6 +32,7 @@ export default function CheckoutPage() {
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [modoPago, setModoPago] = useState<"prueba" | "produccion" | null>(null);
   const [permitirTarjeta, setPermitirTarjeta] = useState(false);
+  const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
   const [payWith, setPayWith] = useState<"enlace" | "tarjeta">("enlace");
   const [linkPurchasing, setLinkPurchasing] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -39,9 +40,10 @@ export default function CheckoutPage() {
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((d: { modoPago: string; permitirTarjetaProduccion: boolean }) => {
+      .then((d: { modoPago: string; permitirTarjetaProduccion: boolean; mpPublicKey: string | null }) => {
         setModoPago(d.modoPago === "produccion" ? "produccion" : "prueba");
         setPermitirTarjeta(!!d.permitirTarjetaProduccion);
+        setMpPublicKey(d.mpPublicKey);
       })
       .catch(() => setModoPago("prueba"));
   }, []);
@@ -187,6 +189,7 @@ export default function CheckoutPage() {
                     totalMXN={item.priceMXN}
                     payerEmail={email}
                     payerName={name}
+                    publicKey={mpPublicKey}
                     onApproved={handleApproved}
                   />
                 </fieldset>
@@ -217,6 +220,7 @@ export default function CheckoutPage() {
                 totalMXN={item.priceMXN}
                 payerEmail={email}
                 payerName={name}
+                publicKey={mpPublicKey}
                 onApproved={handleApproved}
               />
             </fieldset>

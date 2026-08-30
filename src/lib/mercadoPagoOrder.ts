@@ -3,6 +3,8 @@
 // { errors: [{ code, message }] } y solo deja "MercadoPago API error"
 // genérico, lo que hace imposible diagnosticar rechazos (p. ej. emails de
 // sandbox inválidos, rejected_by_issuer) desde el catch.
+import { accessTokenFor } from "@/lib/mercadopago";
+import type { ModoPago } from "@/lib/modoPago";
 
 export type MpOrderItem = {
   title: string;
@@ -11,6 +13,7 @@ export type MpOrderItem = {
 };
 
 export type CreateMpOrderInput = {
+  mode: ModoPago;
   orderId: string; // se usa como idempotency key y external_reference
   totalMXN: number;
   description: string;
@@ -34,7 +37,7 @@ export async function createMpOrder(input: CreateMpOrderInput): Promise<CreateMp
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+      Authorization: `Bearer ${accessTokenFor(input.mode)}`,
       "X-Idempotency-Key": input.orderId,
     },
     body: JSON.stringify({

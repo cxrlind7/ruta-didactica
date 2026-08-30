@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { setSession } from "@/lib/session";
 import { createMpOrder } from "@/lib/mercadoPagoOrder";
+import { getModoPago } from "@/lib/modoPago";
 import { RouteKey } from "@/lib/data";
 
 type CheckoutBody = {
@@ -138,7 +139,9 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  const mode = await getModoPago();
   const result = await createMpOrder({
+    mode,
     orderId: order.id,
     totalMXN: priceMXN,
     description,
