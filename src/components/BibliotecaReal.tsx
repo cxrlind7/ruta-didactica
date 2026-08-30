@@ -101,9 +101,18 @@ export default function BibliotecaReal() {
                       <p className="text-xs font-bold text-rd-navy">{meta.label}</p>
                     </div>
                     <ul className="divide-y divide-slate-100">
-                      {tipo.archivos.map((a) => (
+                      {tipo.archivos.map((a) => {
+                        const ext = a.nombreArchivo.split(".").pop()?.toUpperCase() ?? "";
+                        return (
                         <li key={a.archivoDriveId} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
-                          <span className="text-rd-navy">{a.label}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium text-rd-navy" title={a.nombreArchivo}>
+                              {a.nombreArchivo}
+                            </p>
+                            <span className="mt-0.5 inline-block rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                              {ext}
+                            </span>
+                          </div>
                           <span className="flex shrink-0 gap-1">
                             {viewablePdf && (
                               <button
@@ -142,7 +151,8 @@ export default function BibliotecaReal() {
                             )}
                           </span>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   </div>
                 );
