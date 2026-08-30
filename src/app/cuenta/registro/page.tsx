@@ -21,12 +21,17 @@ function RegistroForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState(searchParams.get("email") || "");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch("/api/auth/register", {
@@ -97,6 +102,20 @@ function RegistroForm() {
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-rd-sm border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rd-sky focus:border-rd-sky"
+          />
+        </div>
+        <div>
+          <label htmlFor="confirmPassword" className="block text-xs font-semibold text-slate-500 mb-1">
+            Confirma tu contraseña
+          </label>
+          <input
+            id="confirmPassword"
+            type="password"
+            required
+            minLength={6}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             className="w-full rounded-rd-sm border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rd-sky focus:border-rd-sky"
           />
         </div>
