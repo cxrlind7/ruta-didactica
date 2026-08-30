@@ -43,6 +43,11 @@ model OrderItem {
   ruta            String? // BASE | VISUAL | SEGUIMIENTO | INTEGRAL
   cobertura       String? // quincena | mes | trimestre | ciclo
   periodoComprado String? // codigo segun cobertura: T1_Q01 | T1_M01 | T1 | CICLO
+
+  // Solo para compras en modo "producción" via /api/checkout/link (enlace
+  // fijo de Mercado Pago, sin tokenizar tarjeta): el codigo de la matriz de
+  // 16 enlaces (QB..CI) que se cobró.
+  paymentCode String?
 }
 
 model Entitlement {
@@ -127,4 +132,29 @@ model ArchivoDrive {
   manual    Boolean @default(false)
   grado     Int?
   trimestre String?
+}
+
+// Ajustes globales del sitio -- fila unica ("global"). Por ahora solo
+// controla si /planes cobra con el checkout dinamico de tarjeta (modo de
+// pruebas) o redirige a los 16 enlaces fijos de Mercado Pago (produccion).
+model AppSettings {
+  id        String   @id @default("global")
+  modoPago  String   @default("prueba") // prueba | produccion
+  updatedAt DateTime @updatedAt
+}
+
+// Matriz oficial de los 16 enlaces fijos de Mercado Pago: cobertura + ruta
+// (modalidad) determinan el codigo, precio y URL -- el grado NO es parte de
+// la llave, un mismo codigo cubre los 6 grados (Especificacion de Enlaces
+// de Pago e Integracion Web v1.0). Precio y URL son editables desde el
+// panel admin, no deben quedar fijos en el codigo.
+model PaymentProduct {
+  id        String   @id @default(cuid())
+  codigo    String   @unique // QB | QV | QS | QI | MB | MV | MS | MI | TB | TV | TS | TI | CB | CV | CS | CI
+  cobertura String // quincena | mes | trimestre | ciclo
+  ruta      String // BASE | VISUAL | SEGUIMIENTO | INTEGRAL
+  precioMXN Int
+  url       String
+  active    Boolean  @default(true)
+  updatedAt DateTime @updatedAt
 }

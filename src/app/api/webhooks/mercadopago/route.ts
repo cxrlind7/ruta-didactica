@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { InvalidWebhookSignatureError, WebhookSignatureValidator } from "mercadopago";
 import { prisma } from "@/lib/prisma";
 import { orderClient } from "@/lib/mercadopago";
+import { approveOrder, rejectOrder } from "@/lib/grantEntitlements";
 
 export async function POST(req: NextRequest) {
   const secret = process.env.MP_WEBHOOK_SECRET;
@@ -51,7 +52,6 @@ export async function POST(req: NextRequest) {
 
     const localOrder = await prisma.order.findFirst({
       where: { OR: [{ mpOrderId: dataId }, { id: mpOrder.external_reference ?? undefined }] },
-      include: { items: true },
     });
 
     if (!localOrder) {
@@ -68,26 +68,9 @@ export async function POST(req: NextRequest) {
     const orderFailedOrCancelled = mpOrder.status === "cancelled" || mpOrder.status === "failed";
 
     if (anyApproved) {
-      await prisma.$transaction([
-        prisma.order.update({ where: { id: localOrder.id }, data: { status: "approved" } }),
-        prisma.entitlement.createMany({
-          data: localOrder.items.map((item) => ({
-            userId: localOrder.userId,
-            itemId: item.itemId,
-            orderId: localOrder.id,
-            grado: item.grado,
-            ruta: item.ruta,
-            cobertura: item.cobertura,
-            periodoComprado: item.periodoComprado,
-          })),
-          skipDuplicates: true,
-        }),
-      ]);
+      await approveOrder(localOrder.id);
     } else if (anyRejected || orderFailedOrCancelled) {
-      await prisma.order.update({
-        where: { id: localOrder.id },
-        data: { status: mpOrder.status === "cancelled" ? "cancelled" : "rejected" },
-      });
+      await rejectOrder(localOrder.id, mpOrder.status === "cancelled" ? "cancelled" : "rejected");
     }
 
     return NextResponse.json({ ok: true });
