@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { DocIcon, ImageIcon, ListIcon, TableIcon } from "@/components/icons";
 
 type TipoKey = "planeacion" | "fichas" | "diapositiva" | "seguimiento";
@@ -36,7 +37,21 @@ export default function BibliotecaReal() {
       .catch(() => setGrados([]));
   }, []);
 
-  if (!grados || grados.length === 0) return null;
+  if (!grados) return null;
+
+  if (grados.length === 0) {
+    return (
+      <div className="mb-10 rounded-rd-md border border-dashed border-slate-300 p-12 text-center">
+        <p className="text-rd-navy font-semibold">Todavía no tienes rutas adquiridas.</p>
+        <Link
+          href="/planes"
+          className="mt-4 inline-flex rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-semibold text-white hover:bg-rd-navy"
+        >
+          Ver rutas y precios
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-10 space-y-6">
