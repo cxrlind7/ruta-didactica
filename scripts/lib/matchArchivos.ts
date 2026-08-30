@@ -26,6 +26,7 @@ export type FoundFile = {
   tipo: "planeacion" | "fichas" | "diapositiva" | "seguimiento";
   subtipo?: "quincena" | "mes" | "trimestre";
   periodo?: string; // T1_Q0N cuando aplica
+  mesCodigo?: string; // M01/M02/M03 cuando subtipo es "mes"
   slot?: "S01" | "S02" | "S03";
   note?: string; // detalle cosmetico (no impide ubicar el archivo)
   hardIssue?: string; // si esta seteado, el archivo NO se pudo ubicar con confianza
@@ -133,17 +134,22 @@ export function walkGrado(gradoDir: string, grado: number): FoundFile[] {
         for (const file of readdirSync(subPath)) {
           if (file.startsWith("~$")) continue;
           const periodo = subtipo === "quincena" ? extractQuincenaPeriodo(file) : undefined;
+          const mesMatch = subtipo === "mes" ? file.match(/M0([1-3])/) : null;
+          const mesCodigo = mesMatch ? `M0${mesMatch[1]}` : undefined;
           found.push({
             path: join(subPath, file),
             grado,
             tipo: "seguimiento",
             subtipo,
             periodo,
+            mesCodigo,
             hardIssue: !subtipo
               ? `no se reconoce la subcarpeta "${subFolder}" (ni trimestre/mes/quincena)`
               : subtipo === "quincena" && !periodo
                 ? "no se pudo derivar el periodo del nombre"
-                : undefined,
+                : subtipo === "mes" && !mesCodigo
+                  ? "no se pudo derivar el mes (M01/M02/M03) del nombre"
+                  : undefined,
           });
         }
       }

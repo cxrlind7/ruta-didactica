@@ -22,6 +22,8 @@ const VOLUME_NAME = "ruta-didactica-demo-volume";
 type PublicacionRow = {
   grado: number;
   periodo: string;
+  trimestre: string;
+  mesComercial: string;
   planeacionArchivo: string | null;
   fichasArchivo: string | null;
   diapositivaS01Archivo: string | null;
@@ -32,7 +34,23 @@ type PublicacionRow = {
   seguimientoTrimestreArchivo: string | null;
 };
 
-function resolveNombreEsperado(f: FoundFile, byGradoPeriodo: Map<string, PublicacionRow>): string | undefined {
+function resolveNombreEsperado(
+  f: FoundFile,
+  byGradoPeriodo: Map<string, PublicacionRow>,
+  byGradoMes: Map<string, PublicacionRow>,
+  byGradoTrimestre: Map<string, PublicacionRow>
+): string | undefined {
+  if (f.tipo === "seguimiento" && f.subtipo === "mes") {
+    if (!f.mesCodigo) return undefined;
+    // Por ahora solo existe T1 en disco; el codigo mensual completo es "T1_M0N".
+    const row = byGradoMes.get(`${f.grado}|T1_${f.mesCodigo}`);
+    return row?.seguimientoMesArchivo ?? undefined;
+  }
+  if (f.tipo === "seguimiento" && f.subtipo === "trimestre") {
+    const row = byGradoTrimestre.get(`${f.grado}|T1`);
+    return row?.seguimientoTrimestreArchivo ?? undefined;
+  }
+
   if (!f.periodo) return undefined;
   const row = byGradoPeriodo.get(`${f.grado}|${f.periodo}`);
   if (!row) return undefined;
@@ -43,11 +61,7 @@ function resolveNombreEsperado(f: FoundFile, byGradoPeriodo: Map<string, Publica
     if (f.slot === "S02") return row.diapositivaS02Archivo ?? undefined;
     if (f.slot === "S03") return row.diapositivaS03Archivo ?? undefined;
   }
-  if (f.tipo === "seguimiento") {
-    if (f.subtipo === "quincena") return row.seguimientoQuincenaArchivo ?? undefined;
-    if (f.subtipo === "mes") return row.seguimientoMesArchivo ?? undefined;
-    if (f.subtipo === "trimestre") return row.seguimientoTrimestreArchivo ?? undefined;
-  }
+  if (f.tipo === "seguimiento" && f.subtipo === "quincena") return row.seguimientoQuincenaArchivo ?? undefined;
   return undefined;
 }
 
@@ -62,12 +76,15 @@ async function main() {
 
   const publicaciones = await prisma.publicacion.findMany();
   const byGradoPeriodo = new Map<string, PublicacionRow>();
-  for (const p of publicaciones) {
-    const key = `${p.grado}|${p.periodo}`;
-    const existing = byGradoPeriodo.get(key);
-    byGradoPeriodo.set(key, {
+  const byGradoMes = new Map<string, PublicacionRow>();
+  const byGradoTrimestre = new Map<string, PublicacionRow>();
+  const merge = (map: Map<string, PublicacionRow>, key: string, p: (typeof publicaciones)[number]) => {
+    const existing = map.get(key);
+    map.set(key, {
       grado: p.grado,
       periodo: p.periodo,
+      trimestre: p.trimestre,
+      mesComercial: p.mesComercial,
       planeacionArchivo: existing?.planeacionArchivo ?? p.planeacionArchivo,
       fichasArchivo: existing?.fichasArchivo ?? p.fichasArchivo,
       diapositivaS01Archivo: existing?.diapositivaS01Archivo ?? p.diapositivaS01Archivo,
@@ -77,6 +94,11 @@ async function main() {
       seguimientoMesArchivo: existing?.seguimientoMesArchivo ?? p.seguimientoMesArchivo,
       seguimientoTrimestreArchivo: existing?.seguimientoTrimestreArchivo ?? p.seguimientoTrimestreArchivo,
     });
+  };
+  for (const p of publicaciones) {
+    merge(byGradoPeriodo, `${p.grado}|${p.periodo}`, p);
+    merge(byGradoMes, `${p.grado}|${p.mesComercial}`, p);
+    merge(byGradoTrimestre, `${p.grado}|${p.trimestre}`, p);
   }
 
   const allFound = walkAllGrados(rootDir);
@@ -89,7 +111,7 @@ async function main() {
   const sinArchivoDrive: string[] = [];
 
   for (const f of confiables) {
-    const nombreEsperado = resolveNombreEsperado(f, byGradoPeriodo);
+    const nombreEsperado = resolveNombreEsperado(f, byGradoPeriodo, byGradoMes, byGradoTrimestre);
     if (!nombreEsperado) {
       sinArchivoDrive.push(`${f.path} (grado ${f.grado}, ${f.tipo}, ${f.periodo ?? "?"}) -> no hay campo esperado en Publicacion`);
       continue;
@@ -127,7 +149,7 @@ async function main() {
   execFileSync(
     "railway",
     ["volume", "files", "--volume", VOLUME_NAME, "upload", STAGING_DIR, REMOTE_BASE, "--overwrite", "--json"],
-    { stdio: "inherit", env: { ...process.env, MSYS_NO_PATHCONV: "1" } }
+    { stdio: "inherit", env: { ...process.env, MSYS_NO_PATHCONV: "1" }, shell: true }
   );
 
   for (const p of plan) {
