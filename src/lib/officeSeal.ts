@@ -126,7 +126,10 @@ export async function sealDocx(bytes: Uint8Array, info: SealInfo): Promise<Uint8
       zip.file(documentPath, documentXml);
     }
 
-    return await zip.generateAsync({ type: "uint8array" });
+    // JSZip no comprime por defecto las entradas que se reescriben con
+    // zip.file(...) (quedan STORE) -- sin esto, cada archivo sellado pesaba
+    // varias veces más que el original y el visor tardaba mucho en cargar.
+    return await zip.generateAsync({ type: "uint8array", compression: "DEFLATE", compressionOptions: { level: 6 } });
   } catch (err) {
     console.error("sealDocx falló, se devuelve el archivo sin sellar", err);
     return bytes;
@@ -203,7 +206,10 @@ export async function sealXlsx(bytes: Uint8Array, info: SealInfo): Promise<Uint8
     }
 
     if (!touchedAny) return bytes;
-    return await zip.generateAsync({ type: "uint8array" });
+    // JSZip no comprime por defecto las entradas que se reescriben con
+    // zip.file(...) (quedan STORE) -- sin esto, cada archivo sellado pesaba
+    // varias veces más que el original y el visor tardaba mucho en cargar.
+    return await zip.generateAsync({ type: "uint8array", compression: "DEFLATE", compressionOptions: { level: 6 } });
   } catch (err) {
     console.error("sealXlsx falló, se devuelve el archivo sin sellar", err);
     return bytes;
