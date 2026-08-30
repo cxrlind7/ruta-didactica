@@ -20,6 +20,7 @@ type ArchivoNode = {
   ingested: boolean;
   sizeBytes: number | null;
   ingestedAt: string | null;
+  manual: boolean;
 };
 
 type TipoNode = { tipo: TipoKey; archivos: ArchivoNode[] };
@@ -100,14 +101,28 @@ export async function GET() {
     const a = archivoByNombre.get(slot.nombreArchivo);
     return {
       key: slot.key,
-      label: slot.label,
+      label: a?.label || slot.label,
       nombreArchivo: slot.nombreArchivo,
       archivoDriveId: a?.id ?? "",
       ingested: !!a?.ingestedAt,
       sizeBytes: a?.sizeBytes ?? null,
       ingestedAt: a?.ingestedAt ? a.ingestedAt.toISOString() : null,
+      manual: a?.manual ?? false,
     };
   };
+
+  // Archivos agregados a mano desde el panel (no vienen de ninguna fila de
+  // Publicacion): tienen su propio grado+trimestre guardados directamente.
+  for (const a of archivos) {
+    if (!a.manual || a.grado == null || !a.trimestre) continue;
+    getSlots(a.grado).push({
+      key: `manual:${a.id}`,
+      label: a.label || a.nombreArchivo,
+      nombreArchivo: a.nombreArchivo,
+      trimestre: a.trimestre,
+      tipo: a.tipo as TipoKey,
+    });
+  }
 
   const grados: GradoNode[] = Array.from(slotsPorGrado.entries())
     .sort(([a], [b]) => a - b)

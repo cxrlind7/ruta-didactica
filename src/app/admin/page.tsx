@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DocIcon, ImageIcon, ListIcon, TableIcon, TrashIcon, UploadIcon } from "@/components/icons";
+import { DocIcon, EditIcon, ImageIcon, ListIcon, PlusIcon, TableIcon, TrashIcon, UploadIcon } from "@/components/icons";
 
 type ArchivoNode = {
   key: string;
@@ -13,7 +13,10 @@ type ArchivoNode = {
   ingested: boolean;
   sizeBytes: number | null;
   ingestedAt: string | null;
+  manual: boolean;
 };
+
+type ActionResult = { ok: true } | { ok: false; error: string };
 
 type TipoKey = "planeacion" | "fichas" | "diapositiva" | "seguimiento";
 type TipoNode = { tipo: TipoKey; archivos: ArchivoNode[] };
@@ -127,6 +130,51 @@ export default function AdminPage() {
       setError("No se pudo retirar el archivo. Intenta de nuevo.");
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function handleEditArchivo(
+    archivoDriveId: string,
+    data: { label?: string; nombreArchivo?: string }
+  ): Promise<ActionResult> {
+    try {
+      const res = await fetch(`/api/admin/archivos/${archivoDriveId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        return { ok: false, error: body?.error ?? "No se pudo guardar." };
+      }
+      loadTree();
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "No se pudo guardar." };
+    }
+  }
+
+  async function handleCreateArchivo(data: {
+    tipo: TipoKey;
+    grado: number;
+    trimestre: string;
+    label: string;
+    nombreArchivo: string;
+  }): Promise<ActionResult> {
+    try {
+      const res = await fetch("/api/admin/archivos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        return { ok: false, error: body?.error ?? "No se pudo crear el recurso." };
+      }
+      loadTree();
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "No se pudo crear el recurso." };
     }
   }
 
@@ -258,9 +306,13 @@ export default function AdminPage() {
               <TipoCard
                 key={t.tipo}
                 tipo={t}
+                grado={selectedGrado}
+                trimestre={trimestreActivo.trimestre}
                 busyId={busyId}
                 onUpload={handleUpload}
                 onDelete={handleDelete}
+                onEdit={handleEditArchivo}
+                onCreate={handleCreateArchivo}
               />
             ))}
             {gradoActivo && gradoActivo.trimestres.length === 0 && (
@@ -301,18 +353,27 @@ function Ring({ pct, size = 40, stroke = 4, light = false }: { pct: number; size
 
 function TipoCard({
   tipo,
+  grado,
+  trimestre,
   busyId,
   onUpload,
   onDelete,
+  onEdit,
+  onCreate,
 }: {
   tipo: TipoNode;
+  grado: number;
+  trimestre: string;
   busyId: string | null;
   onUpload: (id: string, file: File) => void;
   onDelete: (id: string) => void;
+  onEdit: (id: string, data: { label?: string; nombreArchivo?: string }) => Promise<ActionResult>;
+  onCreate: (data: { tipo: TipoKey; grado: number; trimestre: string; label: string; nombreArchivo: string }) => Promise<ActionResult>;
 }) {
   const meta = TIPO_META[tipo.tipo];
   const Icon = meta.icon;
   const ingested = tipo.archivos.filter((a) => a.ingested).length;
+  const [adding, setAdding] = useState(false);
 
   return (
     <section className="rounded-rd-md border border-slate-200 bg-white overflow-hidden">
@@ -327,7 +388,28 @@ function TipoCard({
         <span className="ml-auto shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-slate-500 ring-1 ring-slate-200">
           {ingested}/{tipo.archivos.length}
         </span>
+        <button
+          type="button"
+          onClick={() => setAdding((v) => !v)}
+          title="Agregar archivo"
+          aria-label="Agregar archivo"
+          className={`shrink-0 rounded-full p-1.5 transition ${
+            adding ? "bg-rd-violet text-white" : "text-rd-violet hover:bg-rd-violet/10"
+          }`}
+        >
+          <PlusIcon className="h-3.5 w-3.5" />
+        </button>
       </header>
+
+      {adding && (
+        <AgregarArchivoForm
+          tipo={tipo.tipo}
+          grado={grado}
+          trimestre={trimestre}
+          onCreate={onCreate}
+          onDone={() => setAdding(false)}
+        />
+      )}
 
       {tipo.archivos.length === 0 ? (
         <p className="px-4 py-6 text-center text-xs text-slate-400">Todavía no hay registros para este tipo.</p>
@@ -341,11 +423,77 @@ function TipoCard({
               busy={busyId === a.archivoDriveId}
               onUpload={(file) => onUpload(a.archivoDriveId, file)}
               onDelete={() => onDelete(a.archivoDriveId)}
+              onEdit={(data) => onEdit(a.archivoDriveId, data)}
             />
           ))}
         </ul>
       )}
     </section>
+  );
+}
+
+function AgregarArchivoForm({
+  tipo,
+  grado,
+  trimestre,
+  onCreate,
+  onDone,
+}: {
+  tipo: TipoKey;
+  grado: number;
+  trimestre: string;
+  onCreate: (data: { tipo: TipoKey; grado: number; trimestre: string; label: string; nombreArchivo: string }) => Promise<ActionResult>;
+  onDone: () => void;
+}) {
+  const [label, setLabel] = useState("");
+  const [nombreArchivo, setNombreArchivo] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  async function submit() {
+    setSaving(true);
+    setFormError(null);
+    const result = await onCreate({ tipo, grado, trimestre, label: label.trim(), nombreArchivo: nombreArchivo.trim() });
+    setSaving(false);
+    if (result.ok) onDone();
+    else setFormError(result.error);
+  }
+
+  return (
+    <div className="space-y-2 border-b border-slate-100 bg-rd-violet/5 px-4 py-3">
+      <input
+        type="text"
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        placeholder="Nombre del recurso (ej. Quincena 06)"
+        className="w-full rounded-rd-sm border border-slate-200 px-2 py-1.5 text-xs focus:border-rd-violet focus:outline-none"
+      />
+      <input
+        type="text"
+        value={nombreArchivo}
+        onChange={(e) => setNombreArchivo(e.target.value)}
+        placeholder="Nombre del archivo (como se guardará)"
+        className="w-full rounded-rd-sm border border-slate-200 px-2 py-1.5 font-mono text-[11px] focus:border-rd-violet focus:outline-none"
+      />
+      {formError && <p className="text-[11px] font-medium text-red-600">{formError}</p>}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          disabled={saving || !label.trim() || !nombreArchivo.trim()}
+          onClick={submit}
+          className="rounded-rd-sm bg-rd-violet px-3 py-1.5 text-xs font-semibold text-white hover:bg-rd-navy disabled:opacity-40"
+        >
+          {saving ? "Agregando…" : "Agregar"}
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="rounded-rd-sm px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-rd-navy"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -355,15 +503,77 @@ function ArchivoRow({
   busy,
   onUpload,
   onDelete,
+  onEdit,
 }: {
   archivo: ArchivoNode;
   tipo: TipoKey;
   busy: boolean;
   onUpload: (file: File) => void;
   onDelete: () => void;
+  onEdit: (data: { label?: string; nombreArchivo?: string }) => Promise<ActionResult>;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [label, setLabel] = useState(archivo.label);
+  const [nombreArchivo, setNombreArchivo] = useState(archivo.nombreArchivo);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  function startEditing() {
+    setLabel(archivo.label);
+    setNombreArchivo(archivo.nombreArchivo);
+    setFormError(null);
+    setEditing(true);
+  }
+
+  async function submitEdit() {
+    setSaving(true);
+    setFormError(null);
+    const result = await onEdit({ label: label.trim(), nombreArchivo: nombreArchivo.trim() });
+    setSaving(false);
+    if (result.ok) setEditing(false);
+    else setFormError(result.error);
+  }
+
+  if (editing) {
+    return (
+      <li className="space-y-2 px-4 py-2.5 text-xs">
+        <input
+          type="text"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="Nombre del recurso"
+          className="w-full rounded-rd-sm border border-slate-200 px-2 py-1.5 text-xs focus:border-rd-violet focus:outline-none"
+        />
+        <input
+          type="text"
+          value={nombreArchivo}
+          onChange={(e) => setNombreArchivo(e.target.value)}
+          placeholder="Nombre del archivo"
+          className="w-full rounded-rd-sm border border-slate-200 px-2 py-1.5 font-mono text-[10.5px] focus:border-rd-violet focus:outline-none"
+        />
+        {formError && <p className="text-[11px] font-medium text-red-600">{formError}</p>}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={saving || !label.trim() || !nombreArchivo.trim()}
+            onClick={submitEdit}
+            className="rounded-rd-sm bg-rd-violet px-3 py-1.5 text-xs font-semibold text-white hover:bg-rd-navy disabled:opacity-40"
+          >
+            {saving ? "Guardando…" : "Guardar"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="rounded-rd-sm px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-rd-navy"
+          >
+            Cancelar
+          </button>
+        </div>
+      </li>
+    );
+  }
 
   return (
     <li
@@ -389,6 +599,17 @@ function ArchivoRow({
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        {archivo.archivoDriveId && (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={startEditing}
+            aria-label="Editar nombre del recurso o del archivo"
+            className="rounded-rd-sm p-1.5 text-slate-400 hover:bg-slate-100 hover:text-rd-navy disabled:opacity-40"
+          >
+            <EditIcon className="h-3.5 w-3.5" />
+          </button>
+        )}
         {archivo.ingested ? (
           <>
             <span className="hidden text-slate-400 sm:inline">{formatSize(archivo.sizeBytes)}</span>
@@ -416,7 +637,8 @@ function ArchivoRow({
               type="button"
               disabled={busy}
               onClick={onDelete}
-              aria-label={`Retirar ${archivo.nombreArchivo}`}
+              aria-label={archivo.manual ? "Eliminar recurso" : `Retirar ${archivo.nombreArchivo}`}
+              title={archivo.manual ? "Eliminar recurso" : "Retirar archivo"}
               className="rounded-rd-sm p-1.5 text-red-500 hover:bg-red-50 disabled:opacity-40"
             >
               <TrashIcon className="h-3.5 w-3.5" />

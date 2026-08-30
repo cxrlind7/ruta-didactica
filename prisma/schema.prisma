@@ -115,8 +115,16 @@ model ArchivoDrive {
   id            String    @id @default(cuid())
   nombreArchivo String    @unique
   tipo          String // planeacion | fichas | diapositiva | seguimiento
+  label         String? // nombre del recurso editable a mano (si no, se calcula del periodo)
   path          String? // ruta dentro del volumen de Railway una vez subido
   sizeBytes     Int?
   ingestedAt    DateTime?
   createdAt     DateTime  @default(now())
+
+  // Solo para filas agregadas a mano desde el panel admin (no vienen de la
+  // matriz semillada) -- necesitan su propia ubicacion en el arbol porque no
+  // hay ninguna fila de Publicacion que las referencie.
+  manual    Boolean @default(false)
+  grado     Int?
+  trimestre String?
 }
