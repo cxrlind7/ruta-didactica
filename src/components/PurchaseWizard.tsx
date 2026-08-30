@@ -20,9 +20,14 @@ import { CheckIcon } from "@/components/icons";
 
 const coverageKeys = Object.keys(coverages) as CoverageKey[];
 const routeKeys = Object.keys(routes) as RouteKey[];
+const TRIMESTRE_TAB_LABEL: Record<string, string> = { T1: "Trimestre 1", T2: "Trimestre 2", T3: "Trimestre 3", CA: "Cierre anual" };
 
 type Producto = { codigo: string; cobertura: string; ruta: string; precioMXN: number };
 type Periodo = { value: string; label: string };
+
+function periodoGroup(value: string): string {
+  return value.includes("_") ? value.split("_")[0] : value;
+}
 
 // Selector de compra en 3 pasos: 1) grado (obligatorio para avanzar), 2)
 // cobertura, 3) periodo real + modalidad + resumen + pago. El paso 3 usa
@@ -34,6 +39,7 @@ export default function PurchaseWizard() {
   const [cobertura, setCobertura] = useState<CoverageKey | null>(null);
   const [periodosState, setPeriodosState] = useState<{ key: string; periodos: Periodo[] } | null>(null);
   const [periodo, setPeriodo] = useState<string | null>(null);
+  const [periodTab, setPeriodTab] = useState<string | null>(null);
   const [selectedRuta, setSelectedRuta] = useState<RouteKey | null>(null);
 
   const [productos, setProductos] = useState<Producto[] | null>(null);
@@ -136,6 +142,11 @@ export default function PurchaseWizard() {
   const totalMXN = selectedRuta ? priceFor(selectedRuta) : null;
   const canPay = !!payerName.trim() && !!payerEmail.includes("@") && legalOk;
 
+  const periodGroups = Array.from(new Set((periodos ?? []).map((p) => periodoGroup(p.value))));
+  const groupPeriods = cobertura === "quincena" && periodGroups.length > 1;
+  const activeGroup = groupPeriods ? (periodTab && periodGroups.includes(periodTab) ? periodTab : periodGroups[0]) : null;
+  const visiblePeriodos = groupPeriods ? (periodos ?? []).filter((p) => periodoGroup(p.value) === activeGroup) : periodos;
+
   return (
     <div className="mb-10">
       {/* Indicador de pasos */}
@@ -143,7 +154,7 @@ export default function PurchaseWizard() {
         {[
           { n: 1, label: "Grado" },
           { n: 2, label: "Cobertura" },
-          { n: 3, label: "Periodo y ruta" },
+          { n: 3, label: "Ruta y periodo" },
         ].map((s, i) => (
           <div key={s.n} className="flex items-center gap-2">
             {i > 0 && <span className="h-px w-6 bg-white/15" aria-hidden />}
@@ -211,13 +222,13 @@ export default function PurchaseWizard() {
         </div>
       )}
 
-      {/* Paso 3: periodo + ruta + resumen */}
+      {/* Paso 3: ruta + periodo + resumen */}
       {step === 3 && grado != null && cobertura != null && (
         <div className="space-y-5">
           <div className="rounded-rd-lg border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
             <div className="flex flex-wrap items-center gap-3 text-xs">
               <button type="button" onClick={() => setStep(1)} className="font-semibold text-rd-sky hover:underline">
-                ← {gradeLabel(grado)} grado
+                ← {gradeLabel(grado)}
               </button>
               <span className="text-white/30">·</span>
               <button type="button" onClick={() => setStep(2)} className="font-semibold text-rd-sky hover:underline">
@@ -225,34 +236,10 @@ export default function PurchaseWizard() {
               </button>
             </div>
 
-            <p className="mt-3 text-sm font-bold text-white">Elige el periodo</p>
-            {periodos === null ? (
-              <p className="mt-3 text-xs text-slate-400">Cargando periodos disponibles…</p>
-            ) : periodos.length === 0 ? (
-              <p className="mt-3 text-xs text-amber-300">
-                Todavía no hay periodos publicados para {gradeLabel(grado)} en esta cobertura.
-              </p>
-            ) : (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {periodos.map((p) => (
-                  <button
-                    key={p.value}
-                    onClick={() => setPeriodo(p.value)}
-                    className={`rounded-rd-sm border px-3 py-1.5 text-xs font-bold transition ${
-                      periodo === p.value
-                        ? "border-rd-turquoise bg-rd-turquoise text-rd-navy"
-                        : "border-white/15 text-white hover:border-rd-sky/60"
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            <p className="mt-3 text-sm font-bold text-white">Elige tu ruta</p>
+            <p className="text-xs text-slate-300">El nivel de acompañamiento que quieres para este periodo.</p>
 
-          {periodo && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {routeKeys.map((key) => {
                 const route = routes[key];
                 const price = priceFor(key);
@@ -277,6 +264,54 @@ export default function PurchaseWizard() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {selectedRuta && (
+            <div className="rounded-rd-lg border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
+              <p className="text-sm font-bold text-white">Elige el periodo</p>
+              {periodos === null ? (
+                <p className="mt-3 text-xs text-slate-400">Cargando periodos disponibles…</p>
+              ) : periodos.length === 0 ? (
+                <p className="mt-3 text-xs text-amber-300">
+                  Todavía no hay periodos publicados para {gradeLabel(grado)} en esta cobertura.
+                </p>
+              ) : (
+                <>
+                  {groupPeriods && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {periodGroups.map((g) => (
+                        <button
+                          key={g}
+                          onClick={() => setPeriodTab(g)}
+                          className={`rounded-full border px-3 py-1 text-[11px] font-bold transition ${
+                            activeGroup === g
+                              ? "border-rd-sky bg-rd-sky/20 text-white"
+                              : "border-white/10 text-slate-300 hover:border-white/30"
+                          }`}
+                        >
+                          {TRIMESTRE_TAB_LABEL[g] ?? g}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {visiblePeriodos?.map((p) => (
+                      <button
+                        key={p.value}
+                        onClick={() => setPeriodo(p.value)}
+                        className={`rounded-rd-sm border px-3 py-1.5 text-xs font-bold transition ${
+                          periodo === p.value
+                            ? "border-rd-turquoise bg-rd-turquoise text-rd-navy"
+                            : "border-white/15 text-white hover:border-rd-sky/60"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
