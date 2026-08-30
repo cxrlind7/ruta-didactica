@@ -9,6 +9,7 @@ import { ChevronRightIcon, DocIcon, EditIcon, ImageIcon, ListIcon, PlusIcon, Tab
 
 const PdfViewerModal = dynamic(() => import("@/components/PdfViewerModal"), { ssr: false });
 const DocxViewerModal = dynamic(() => import("@/components/DocxViewerModal"), { ssr: false });
+const XlsxViewerModal = dynamic(() => import("@/components/XlsxViewerModal"), { ssr: false });
 
 type ArchivoNode = {
   key: string;
@@ -70,7 +71,7 @@ export default function AdminPage() {
   const [selectedTrimestre, setSelectedTrimestre] = useState<string | null>(null);
   const [expandedTipo, setExpandedTipo] = useState<TipoKey | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [viewer, setViewer] = useState<{ kind: "pdf" | "docx"; id: string } | null>(null);
+  const [viewer, setViewer] = useState<{ kind: "pdf" | "docx" | "xlsx"; id: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadTree = useCallback(() => {
@@ -334,6 +335,7 @@ export default function AdminPage() {
 
       {viewer?.kind === "pdf" && <PdfViewerModal archivoDriveId={viewer.id} onClose={() => setViewer(null)} />}
       {viewer?.kind === "docx" && <DocxViewerModal archivoDriveId={viewer.id} onClose={() => setViewer(null)} />}
+      {viewer?.kind === "xlsx" && <XlsxViewerModal archivoDriveId={viewer.id} onClose={() => setViewer(null)} />}
     </div>
   );
 }
@@ -387,7 +389,7 @@ function TipoCard({
   onDelete: (id: string) => void;
   onEdit: (id: string, data: { label?: string; nombreArchivo?: string }) => Promise<ActionResult>;
   onCreate: (data: { tipo: TipoKey; grado: number; trimestre: string; label: string; nombreArchivo: string }) => Promise<ActionResult>;
-  onView: (id: string, kind: "pdf" | "docx") => void;
+  onView: (id: string, kind: "pdf" | "docx" | "xlsx") => void;
 }) {
   const meta = TIPO_META[tipo.tipo];
   const Icon = meta.icon;
@@ -559,7 +561,7 @@ function ArchivoRow({
   onUpload: (file: File) => void;
   onDelete: () => void;
   onEdit: (data: { label?: string; nombreArchivo?: string }) => Promise<ActionResult>;
-  onView: (kind: "pdf" | "docx") => void;
+  onView: (kind: "pdf" | "docx" | "xlsx") => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -695,6 +697,15 @@ function ArchivoRow({
                 <button
                   type="button"
                   onClick={() => onView("docx")}
+                  className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
+                >
+                  Ver
+                </button>
+              )}
+              {archivo.ingested && tipo === "seguimiento" && (
+                <button
+                  type="button"
+                  onClick={() => onView("xlsx")}
                   className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
                 >
                   Ver

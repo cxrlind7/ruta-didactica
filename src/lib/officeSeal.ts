@@ -11,7 +11,7 @@ import type { SealInfo } from "@/lib/pdfSeal";
 // la esperada en algún punto, se aborta silenciosamente y se devuelven los
 // bytes originales sin estampar, en vez de arriesgar un archivo corrupto.
 
-function buildStamp(info: SealInfo): string {
+export function buildStamp(info: SealInfo): string {
   const fecha = (info.fecha ?? new Date()).toLocaleString("es-MX", { dateStyle: "long", timeStyle: "short" });
   return `${info.nombre} · ${info.email} · Pedido ${info.orderId} · ${fecha}`;
 }

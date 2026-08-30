@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@embedpdf/react-pdf-viewer": "^2.15.0",
     "@mercadopago/sdk-react": "^1.0.7",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",

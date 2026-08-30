@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import mammoth from "mammoth";
-import { CloseIcon } from "@/components/icons";
+import ViewerModalShell from "@/components/ViewerModalShell";
 
 const CONTENT_CLASS =
   "max-w-none text-sm leading-relaxed text-slate-700 " +
@@ -54,48 +54,15 @@ export default function DocxViewerModal({ archivoDriveId, onClose }: { archivoDr
     };
   }, [archivoDriveId]);
 
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      const key = e.key.toLowerCase();
-      if (key === "escape") {
-        onClose();
-        return;
-      }
-      if ((e.ctrlKey || e.metaKey) && (key === "p" || key === "s")) e.preventDefault();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={onClose}>
-      <div
-        className="flex h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-rd-md bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-        onContextMenu={(e) => e.preventDefault()}
-      >
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-2.5">
-          <p className="text-xs text-slate-400">Uso individual · no se autoriza compartir este material.</p>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="rounded-rd-sm p-1.5 text-slate-400 hover:bg-slate-100 hover:text-rd-navy"
-          >
-            <CloseIcon className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="flex-1 select-none overflow-y-auto px-8 py-6">
-          {status === "loading" && (
-            <p className="py-20 text-center text-sm text-slate-400">Cargando documento…</p>
-          )}
-          {status === "error" && (
-            <p className="rounded-rd-sm bg-red-50 px-4 py-3 text-sm font-medium text-red-600">{errorMsg}</p>
-          )}
-          {status === "ready" && <div className={CONTENT_CLASS} dangerouslySetInnerHTML={{ __html: html }} />}
-        </div>
+    <ViewerModalShell archivoDriveId={archivoDriveId} onClose={onClose} maxWidthClassName="max-w-3xl">
+      <div className="flex-1 select-none overflow-y-auto px-8 py-6">
+        {status === "loading" && <p className="py-20 text-center text-sm text-slate-400">Cargando documento…</p>}
+        {status === "error" && (
+          <p className="rounded-rd-sm bg-red-50 px-4 py-3 text-sm font-medium text-red-600">{errorMsg}</p>
+        )}
+        {status === "ready" && <div className={CONTENT_CLASS} dangerouslySetInnerHTML={{ __html: html }} />}
       </div>
-    </div>
+    </ViewerModalShell>
   );
 }

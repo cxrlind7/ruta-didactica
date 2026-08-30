@@ -83,3 +83,23 @@ body {
     animation: rd-blob-float 22s ease-in-out infinite reverse;
   }
 }
+
+.rd-xlsx-preview-wrap {
+  font-size: 0.75rem;
+  color: var(--rd-navy);
+}
+.rd-xlsx-preview {
+  border-collapse: collapse;
+  white-space: pre-wrap;
+}
+.rd-xlsx-preview td {
+  border: 1px solid #e2e8f0;
+  padding: 4px 8px;
+  vertical-align: top;
+}
+.rd-xlsx-truncated {
+  margin-top: 0.75rem;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-align: center;
+}

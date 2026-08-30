@@ -7,6 +7,7 @@ import { DocIcon, ImageIcon, ListIcon, TableIcon } from "@/components/icons";
 
 const PdfViewerModal = dynamic(() => import("@/components/PdfViewerModal"), { ssr: false });
 const DocxViewerModal = dynamic(() => import("@/components/DocxViewerModal"), { ssr: false });
+const XlsxViewerModal = dynamic(() => import("@/components/XlsxViewerModal"), { ssr: false });
 
 type TipoKey = "planeacion" | "fichas" | "diapositiva" | "seguimiento";
 type ArchivoOut = { archivoDriveId: string; label: string; nombreArchivo: string };
@@ -33,7 +34,7 @@ const GRADO_LABEL: Record<number, string> = { 1: "1º", 2: "2º", 3: "3º", 4: "
 export default function BibliotecaReal() {
   const [grados, setGrados] = useState<GradoOut[] | null>(null);
   const [selectedTrimestre, setSelectedTrimestre] = useState<Record<number, string>>({});
-  const [viewer, setViewer] = useState<{ kind: "pdf" | "docx"; id: string } | null>(null);
+  const [viewer, setViewer] = useState<{ kind: "pdf" | "docx" | "xlsx"; id: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/biblioteca")
@@ -91,6 +92,7 @@ export default function BibliotecaReal() {
                 const Icon = meta.icon;
                 const viewablePdf = tipo.tipo === "fichas" || tipo.tipo === "diapositiva";
                 const viewableDocx = tipo.tipo === "planeacion";
+                const viewableXlsx = tipo.tipo === "seguimiento";
                 return (
                   <div key={tipo.tipo} className="rounded-rd-sm border border-slate-100">
                     <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2">
@@ -120,6 +122,15 @@ export default function BibliotecaReal() {
                                 Ver
                               </button>
                             )}
+                            {viewableXlsx && (
+                              <button
+                                type="button"
+                                onClick={() => setViewer({ kind: "xlsx", id: a.archivoDriveId })}
+                                className="rounded-rd-sm bg-rd-violet px-2 py-1 font-semibold text-white hover:bg-rd-navy"
+                              >
+                                Ver
+                              </button>
+                            )}
                             {!viewablePdf && (
                               <a
                                 href={`/api/archivos/${a.archivoDriveId}/descargar`}
@@ -142,6 +153,7 @@ export default function BibliotecaReal() {
 
       {viewer?.kind === "pdf" && <PdfViewerModal archivoDriveId={viewer.id} onClose={() => setViewer(null)} />}
       {viewer?.kind === "docx" && <DocxViewerModal archivoDriveId={viewer.id} onClose={() => setViewer(null)} />}
+      {viewer?.kind === "xlsx" && <XlsxViewerModal archivoDriveId={viewer.id} onClose={() => setViewer(null)} />}
     </div>
   );
 }
