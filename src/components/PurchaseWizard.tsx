@@ -22,7 +22,7 @@ function periodoGroup(value: string): string {
 // cobertura, 3) ruta + periodo real. Termina en "agregar al carrito" -- el
 // checkbox legal, el resumen final y el pago viven en /carrito y /checkout.
 export default function PurchaseWizard() {
-  const { addToCart, setAccountLocal } = useStore();
+  const { addToCart, setAccountLocal, account, isLoggedIn } = useStore();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [grado, setGrado] = useState<number | null>(null);
   const [cobertura, setCobertura] = useState<CoverageKey | null>(null);
@@ -96,7 +96,9 @@ export default function PurchaseWizard() {
     if (!grado || !cobertura || !periodo || !selectedRuta || totalMXN == null) return;
     const periodoLabel = periodos?.find((p) => p.value === periodo)?.label ?? periodo;
     addToCart(selectedRuta, grado, cobertura, periodo, periodoLabel, totalMXN);
-    if (payerEmail.trim()) setAccountLocal(payerEmail.trim(), payerName.trim());
+    const email = isLoggedIn ? (account?.email ?? "") : payerEmail.trim();
+    const name = isLoggedIn ? (account?.name ?? "") : payerName.trim();
+    if (email) setAccountLocal(email, name);
     setAddedToCart(true);
   }
 
@@ -107,7 +109,9 @@ export default function PurchaseWizard() {
   }
 
   const totalMXN = selectedRuta ? priceFor(selectedRuta) : null;
-  const canAdd = !!payerName.trim() && !!payerEmail.includes("@");
+  // Si ya hay sesión iniciada, no tiene sentido volver a pedir nombre y
+  // correo -- ya se sabe quién es el comprador.
+  const canAdd = isLoggedIn || (!!payerName.trim() && !!payerEmail.includes("@"));
 
   const periodGroups = Array.from(new Set((periodos ?? []).map((p) => periodoGroup(p.value))));
   const groupPeriods = cobertura === "quincena" && periodGroups.length > 1;
@@ -322,22 +326,24 @@ export default function PurchaseWizard() {
                 </div>
               ) : (
                 <div className="mt-5 space-y-3">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <input
-                      type="text"
-                      placeholder="Tu nombre"
-                      value={payerName}
-                      onChange={(e) => setPayerName(e.target.value)}
-                      className="rounded-rd-sm border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-rd-turquoise focus:outline-none"
-                    />
-                    <input
-                      type="email"
-                      placeholder="Tu correo"
-                      value={payerEmail}
-                      onChange={(e) => setPayerEmail(e.target.value)}
-                      className="rounded-rd-sm border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-rd-turquoise focus:outline-none"
-                    />
-                  </div>
+                  {!isLoggedIn && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <input
+                        type="text"
+                        placeholder="Tu nombre"
+                        value={payerName}
+                        onChange={(e) => setPayerName(e.target.value)}
+                        className="rounded-rd-sm border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-rd-turquoise focus:outline-none"
+                      />
+                      <input
+                        type="email"
+                        placeholder="Tu correo"
+                        value={payerEmail}
+                        onChange={(e) => setPayerEmail(e.target.value)}
+                        className="rounded-rd-sm border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-rd-turquoise focus:outline-none"
+                      />
+                    </div>
+                  )}
 
                   {!canAdd ? (
                     <p className="text-xs text-slate-400">Completa tu nombre y correo para agregar esta ruta al carrito.</p>
