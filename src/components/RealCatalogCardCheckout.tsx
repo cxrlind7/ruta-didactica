@@ -33,6 +33,15 @@ type CardPaymentFormData = {
   payer: { email?: string };
 };
 
+// El Brick no manda el tipo de tarjeta (credit_card/debit_card/prepaid_card)
+// en formData -- viene en este segundo parámetro. Sin esto, se estaba
+// mandando siempre "credit_card" a /api/checkout aunque la tarjeta real
+// fuera de débito, lo que Mercado Pago rechaza (el token ya sabe qué tipo
+// de tarjeta es realmente).
+type CardPaymentAdditionalData = {
+  paymentTypeId?: string;
+};
+
 type Phase = "form" | "confirming" | "error" | "rejected";
 
 const POLL_INTERVAL_MS = 1500;
@@ -96,7 +105,7 @@ export default function RealCatalogCardCheckout({
       });
   }
 
-  async function handleSubmit(formData: CardPaymentFormData) {
+  async function handleSubmit(formData: CardPaymentFormData, additionalData?: CardPaymentAdditionalData) {
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -111,7 +120,7 @@ export default function RealCatalogCardCheckout({
           token: formData.token,
           payment_method_id: formData.payment_method_id,
           installments: formData.installments,
-          payment_type: "credit_card",
+          payment_type: additionalData?.paymentTypeId || "credit_card",
         },
       }),
     });
