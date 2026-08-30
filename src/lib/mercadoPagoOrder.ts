@@ -65,7 +65,7 @@ export async function createMpOrder(input: CreateMpOrderInput): Promise<CreateMp
               type: input.paymentType,
               token: input.token,
               installments: input.installments,
-              ...(input.issuerId ? { statement_descriptor: "RUTA DIDACTICA" } : {}),
+              ...(input.issuerId ? { issuer_id: input.issuerId } : {}),
             },
           },
         ],
