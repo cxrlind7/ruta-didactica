@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRightIcon, DocIcon, EditIcon, ImageIcon, ListIcon, PlusIcon, TableIcon, TrashIcon, UploadIcon } from "@/components/icons";
+
+const PdfViewerModal = dynamic(() => import("@/components/PdfViewerModal"), { ssr: false });
 
 type ArchivoNode = {
   key: string;
@@ -66,6 +69,7 @@ export default function AdminPage() {
   const [selectedTrimestre, setSelectedTrimestre] = useState<string | null>(null);
   const [expandedTipo, setExpandedTipo] = useState<TipoKey | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [viewerId, setViewerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadTree = useCallback(() => {
@@ -317,6 +321,7 @@ export default function AdminPage() {
                 onDelete={handleDelete}
                 onEdit={handleEditArchivo}
                 onCreate={handleCreateArchivo}
+                onView={setViewerId}
               />
             ))}
             {gradoActivo && gradoActivo.trimestres.length === 0 && (
@@ -325,6 +330,8 @@ export default function AdminPage() {
           </div>
         </>
       )}
+
+      {viewerId && <PdfViewerModal archivoDriveId={viewerId} onClose={() => setViewerId(null)} />}
     </div>
   );
 }
@@ -366,6 +373,7 @@ function TipoCard({
   onDelete,
   onEdit,
   onCreate,
+  onView,
 }: {
   tipo: TipoNode;
   grado: number;
@@ -377,6 +385,7 @@ function TipoCard({
   onDelete: (id: string) => void;
   onEdit: (id: string, data: { label?: string; nombreArchivo?: string }) => Promise<ActionResult>;
   onCreate: (data: { tipo: TipoKey; grado: number; trimestre: string; label: string; nombreArchivo: string }) => Promise<ActionResult>;
+  onView: (id: string) => void;
 }) {
   const meta = TIPO_META[tipo.tipo];
   const Icon = meta.icon;
@@ -453,6 +462,7 @@ function TipoCard({
                   onUpload={(file) => onUpload(a.archivoDriveId, file)}
                   onDelete={() => onDelete(a.archivoDriveId)}
                   onEdit={(data) => onEdit(a.archivoDriveId, data)}
+                  onView={() => onView(a.archivoDriveId)}
                 />
               ))}
             </ul>
@@ -537,6 +547,7 @@ function ArchivoRow({
   onUpload,
   onDelete,
   onEdit,
+  onView,
 }: {
   archivo: ArchivoNode;
   tipo: TipoKey;
@@ -546,6 +557,7 @@ function ArchivoRow({
   onUpload: (file: File) => void;
   onDelete: () => void;
   onEdit: (data: { label?: string; nombreArchivo?: string }) => Promise<ActionResult>;
+  onView: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -670,14 +682,13 @@ function ArchivoRow({
               )}
               {archivo.ingested &&
                 (tipo === "fichas" || tipo === "diapositiva" ? (
-                  <a
-                    href={`/visor/${archivo.archivoDriveId}`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    onClick={onView}
                     className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
                   >
                     Ver
-                  </a>
+                  </button>
                 ) : (
                   <a
                     href={`/api/archivos/${archivo.archivoDriveId}/descargar`}

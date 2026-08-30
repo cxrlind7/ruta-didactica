@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { DocIcon, ImageIcon, ListIcon, TableIcon } from "@/components/icons";
+
+const PdfViewerModal = dynamic(() => import("@/components/PdfViewerModal"), { ssr: false });
 
 type TipoKey = "planeacion" | "fichas" | "diapositiva" | "seguimiento";
 type ArchivoOut = { archivoDriveId: string; label: string; nombreArchivo: string };
@@ -29,6 +32,7 @@ const GRADO_LABEL: Record<number, string> = { 1: "1º", 2: "2º", 3: "3º", 4: "
 export default function BibliotecaReal() {
   const [grados, setGrados] = useState<GradoOut[] | null>(null);
   const [selectedTrimestre, setSelectedTrimestre] = useState<Record<number, string>>({});
+  const [viewerId, setViewerId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/biblioteca")
@@ -96,14 +100,13 @@ export default function BibliotecaReal() {
                         <li key={a.archivoDriveId} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
                           <span className="text-rd-navy">{a.label}</span>
                           {viewable ? (
-                            <a
-                              href={`/visor/${a.archivoDriveId}`}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => setViewerId(a.archivoDriveId)}
                               className="rounded-rd-sm bg-rd-violet px-2 py-1 font-semibold text-white hover:bg-rd-navy"
                             >
                               Ver
-                            </a>
+                            </button>
                           ) : (
                             <a
                               href={`/api/archivos/${a.archivoDriveId}/descargar`}
@@ -122,6 +125,8 @@ export default function BibliotecaReal() {
           </section>
         );
       })}
+
+      {viewerId && <PdfViewerModal archivoDriveId={viewerId} onClose={() => setViewerId(null)} />}
     </div>
   );
 }
