@@ -30,6 +30,16 @@ type GradoNode = { grado: number; trimestres: TrimestreNode[] };
 const TRIMESTRE_ORDEN = ["T1", "T2", "T3", "CA"];
 const TIPOS: TipoKey[] = ["planeacion", "fichas", "diapositiva", "seguimiento"];
 
+// Los slots de seguimiento se arman en el orden en que aparecen las
+// publicaciones (quincena por quincena), así que Mes/Trimestre quedan
+// intercalados en cualquier punto en vez de agrupados -- se reordena para
+// que coincida con cómo están organizadas las carpetas reales (Mes,
+// Quincena, Trimestre).
+const SEGUIMIENTO_GRANULARIDAD_ORDEN: Record<string, number> = { sm: 0, sq: 1, st: 2 };
+function seguimientoOrden(key: string): number {
+  return SEGUIMIENTO_GRANULARIDAD_ORDEN[key.split(":")[0]] ?? 99;
+}
+
 export async function GET() {
   const auth = await requireAdminUser();
   if ("error" in auth) return auth.error;
@@ -136,10 +146,13 @@ export async function GET() {
           const slotsDelTrimestre = slots.filter((s) => s.trimestre === trimestre);
           return {
             trimestre,
-            tipos: TIPOS.map((tipo) => ({
-              tipo,
-              archivos: slotsDelTrimestre.filter((s) => s.tipo === tipo).map(toArchivoNode),
-            })).filter((t) => t.archivos.length > 0),
+            tipos: TIPOS.map((tipo) => {
+              const archivosDelTipo = slotsDelTrimestre.filter((s) => s.tipo === tipo);
+              if (tipo === "seguimiento") {
+                archivosDelTipo.sort((a, b) => seguimientoOrden(a.key) - seguimientoOrden(b.key));
+              }
+              return { tipo, archivos: archivosDelTipo.map(toArchivoNode) };
+            }).filter((t) => t.archivos.length > 0),
           };
         }),
       };

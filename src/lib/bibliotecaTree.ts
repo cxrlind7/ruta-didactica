@@ -11,6 +11,13 @@ export type GradoOut = { grado: number; trimestres: TrimestreOut[] };
 
 const TIPOS: TipoKey[] = ["planeacion", "fichas", "diapositiva", "seguimiento"];
 
+// Los archivos de seguimiento se agregan en el orden en que aparecen las
+// publicaciones (quincena por quincena), así que Mes/Trimestre quedan
+// intercalados en cualquier punto en vez de agrupados -- se reordena para
+// que coincida con cómo están organizadas las carpetas reales (Mes,
+// Quincena, Trimestre).
+const GRANULARIDAD_ORDEN: Record<Granularity, number> = { mes: 0, quincena: 1, trimestre: 2 };
+
 // Arbol grado -> trimestre -> tipo -> archivos que el usuario puede ver,
 // según sus entitlements reales -- extraído de /api/biblioteca para
 // reusarlo también en la descarga de "todo junto" (ver
@@ -130,14 +137,20 @@ export async function getBibliotecaTree(userId: string): Promise<GradoOut[]> {
       grado,
       trimestres: Array.from(trimestres.entries()).map(([trimestre, tipos]) => ({
         trimestre,
-        tipos: TIPOS.filter((t) => tipos.has(t)).map((tipo) => ({
-          tipo,
-          archivos: tipos.get(tipo)!.map((s) => ({
-            archivoDriveId: archivoByNombre.get(s.nombreArchivo)!.id,
-            label: s.label,
-            nombreArchivo: s.nombreArchivo,
-          })),
-        })),
+        tipos: TIPOS.filter((t) => tipos.has(t)).map((tipo) => {
+          const slotsDelTipo = tipos.get(tipo)!;
+          if (tipo === "seguimiento") {
+            slotsDelTipo.sort((a, b) => GRANULARIDAD_ORDEN[a.granularity] - GRANULARIDAD_ORDEN[b.granularity]);
+          }
+          return {
+            tipo,
+            archivos: slotsDelTipo.map((s) => ({
+              archivoDriveId: archivoByNombre.get(s.nombreArchivo)!.id,
+              label: s.label,
+              nombreArchivo: s.nombreArchivo,
+            })),
+          };
+        }),
       })),
     }));
 }
