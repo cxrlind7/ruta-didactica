@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { DocIcon, ImageIcon, ListIcon, TableIcon } from "@/components/icons";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const PdfViewerModal = dynamic(() => import("@/components/PdfViewerModal"), { ssr: false });
 const DocxViewerModal = dynamic(() => import("@/components/DocxViewerModal"), { ssr: false });
@@ -43,7 +44,7 @@ export default function BibliotecaReal() {
       .catch(() => setGrados([]));
   }, []);
 
-  if (!grados) return null;
+  if (!grados) return <LoadingScreen label="Cargando tu biblioteca…" />;
 
   if (grados.length === 0) {
     return (

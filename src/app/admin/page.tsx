@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRightIcon, DocIcon, EditIcon, ImageIcon, ListIcon, PlusIcon, TableIcon, TrashIcon, UploadIcon } from "@/components/icons";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const PdfViewerModal = dynamic(() => import("@/components/PdfViewerModal"), { ssr: false });
 const DocxViewerModal = dynamic(() => import("@/components/DocxViewerModal"), { ssr: false });
@@ -191,7 +192,7 @@ export default function AdminPage() {
     router.push("/");
   }
 
-  if (account === "loading") return null;
+  if (account === "loading") return <LoadingScreen label="Cargando…" />;
 
   if (!account) {
     return (
@@ -252,7 +253,7 @@ export default function AdminPage() {
       )}
 
       {grados === null ? (
-        <p className="mt-10 text-sm text-slate-400">Cargando árbol de archivos…</p>
+        <LoadingScreen label="Cargando árbol de archivos…" />
       ) : (
         <>
           <div className="mt-8 flex gap-2 overflow-x-auto pb-1">
