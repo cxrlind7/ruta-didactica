@@ -18,8 +18,17 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [email, setEmail] = useState(account?.email || "");
-  const [name, setName] = useState(account?.name || "");
+  // El store hidrata `account` desde localStorage un instante despues del
+  // primer render -- si guardaramos el email/nombre en useState al montar,
+  // se quedarian vacios cuando se entra directo a /checkout (recarga, link
+  // externo) en vez de navegar desde el carrito. Mientras el campo no se
+  // haya tocado a mano, se deriva siempre de `account`.
+  const [emailDraft, setEmailDraft] = useState("");
+  const [nameDraft, setNameDraft] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [nameTouched, setNameTouched] = useState(false);
+  const email = emailTouched ? emailDraft : (account?.email ?? "");
+  const name = nameTouched ? nameDraft : (account?.name ?? "");
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [modoPago, setModoPago] = useState<"prueba" | "produccion" | null>(null);
   const [linkPurchasing, setLinkPurchasing] = useState(false);
@@ -103,7 +112,10 @@ export default function CheckoutPage() {
                 id="name"
                 required
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setNameTouched(true);
+                  setNameDraft(e.target.value);
+                }}
                 className="w-full rounded-rd-sm border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rd-sky focus:border-rd-sky"
                 placeholder="Tu nombre"
               />
@@ -117,7 +129,10 @@ export default function CheckoutPage() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmailTouched(true);
+                  setEmailDraft(e.target.value);
+                }}
                 className="w-full rounded-rd-sm border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rd-sky focus:border-rd-sky"
                 placeholder="tu@correo.com"
               />
