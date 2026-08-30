@@ -14,7 +14,6 @@ type Producto = {
   cobertura: string;
   ruta: string;
   precioMXN: number;
-  url: string;
   active: boolean;
 };
 
@@ -128,7 +127,7 @@ export default function AdminPagosPage() {
     }
   }
 
-  async function saveProducto(codigo: string, data: { precioMXN?: number; url?: string }) {
+  async function saveProducto(codigo: string, data: { precioMXN?: number }) {
     setBusy(codigo);
     setError(null);
     try {
@@ -345,8 +344,7 @@ export default function AdminPagosPage() {
           <h2 className="text-sm font-bold text-rd-navy">Precios (16 productos)</h2>
           <p className="text-xs text-slate-500">
             Un mismo código cubre los 6 grados. El precio de aquí es el que se usa para generar el link de pago de
-            cada compra; el campo de URL ya no se usa para cobrar, queda solo como respaldo manual. Desactivar un
-            producto lo oculta en /planes.
+            cada compra. Desactivar un producto lo oculta en /planes.
           </p>
         </div>
         {productos === null ? (
@@ -405,22 +403,20 @@ function ProductoRow({
 }: {
   producto: Producto;
   busy: boolean;
-  onSave: (data: { precioMXN?: number; url?: string }) => void;
+  onSave: (data: { precioMXN?: number }) => void;
   onToggleActive: (active: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [precio, setPrecio] = useState(String(producto.precioMXN));
-  const [url, setUrl] = useState(producto.url);
 
   function startEditing() {
     setPrecio(String(producto.precioMXN));
-    setUrl(producto.url);
     setEditing(true);
   }
 
   function save() {
     const precioNum = Number(precio);
-    onSave({ precioMXN: Number.isFinite(precioNum) ? precioNum : undefined, url });
+    onSave({ precioMXN: Number.isFinite(precioNum) ? precioNum : undefined });
     setEditing(false);
   }
 
@@ -434,19 +430,7 @@ function ProductoRow({
           {COBERTURA_LABEL[producto.cobertura] ?? producto.cobertura} · {RUTA_LABEL[producto.ruta] ?? producto.ruta}
         </span>
 
-        {!editing && (
-          <>
-            <span className="font-bold text-rd-navy">{formatMXN(producto.precioMXN)}</span>
-            <a
-              href={producto.url}
-              target="_blank"
-              rel="noreferrer"
-              className="truncate text-slate-400 hover:text-rd-violet hover:underline"
-            >
-              {producto.url}
-            </a>
-          </>
-        )}
+        {!editing && <span className="font-bold text-rd-navy">{formatMXN(producto.precioMXN)}</span>}
 
         <span className="ml-auto flex shrink-0 items-center gap-2">
           <label className="flex items-center gap-1.5 text-slate-500">
@@ -480,12 +464,6 @@ function ProductoRow({
             value={precio}
             onChange={(e) => setPrecio(e.target.value)}
             className="w-24 rounded-rd-sm border border-slate-200 px-2 py-1 text-xs focus:border-rd-violet focus:outline-none"
-          />
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="min-w-0 flex-1 rounded-rd-sm border border-slate-200 px-2 py-1 font-mono text-[10.5px] focus:border-rd-violet focus:outline-none"
           />
           <button
             type="button"

@@ -12,21 +12,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ co
 
   const body = await req.json().catch(() => null);
   const precioMXN = body?.precioMXN !== undefined ? Number(body.precioMXN) : undefined;
-  const url = typeof body?.url === "string" ? body.url.trim() : undefined;
   const active = typeof body?.active === "boolean" ? body.active : undefined;
 
   if (precioMXN !== undefined && (!Number.isInteger(precioMXN) || precioMXN <= 0)) {
     return NextResponse.json({ error: "Precio inválido" }, { status: 400 });
-  }
-  if (url !== undefined && !url) {
-    return NextResponse.json({ error: "La URL no puede quedar vacía" }, { status: 400 });
   }
 
   const updated = await prisma.paymentProduct.update({
     where: { codigo },
     data: {
       ...(precioMXN !== undefined ? { precioMXN } : {}),
-      ...(url !== undefined ? { url } : {}),
       ...(active !== undefined ? { active } : {}),
     },
   });

@@ -153,18 +153,19 @@ model AppSettings {
   updatedAt DateTime @updatedAt
 }
 
-// Matriz oficial de los 16 enlaces fijos de Mercado Pago: cobertura + ruta
-// (modalidad) determinan el codigo, precio y URL -- el grado NO es parte de
-// la llave, un mismo codigo cubre los 6 grados (Especificacion de Enlaces
-// de Pago e Integracion Web v1.0). Precio y URL son editables desde el
-// panel admin, no deben quedar fijos en el codigo.
+// Matriz de los 16 productos de pago: cobertura + ruta (modalidad) determinan
+// el codigo y el precio -- el grado NO es parte de la llave, un mismo codigo
+// cubre los 6 grados (Especificacion de Enlaces de Pago e Integracion Web
+// v1.0). El precio es editable desde el panel admin. Ya no se guarda una URL
+// fija: en produccion, /api/checkout/link genera un link de pago real por
+// pedido (Mercado Pago Checkout Pro) usando este precio, en vez de redirigir
+// a un enlace compartido por todos los compradores.
 model PaymentProduct {
   id        String   @id @default(cuid())
   codigo    String   @unique // QB | QV | QS | QI | MB | MV | MS | MI | TB | TV | TS | TI | CB | CV | CS | CI
   cobertura String // quincena | mes | trimestre | ciclo
   ruta      String // BASE | VISUAL | SEGUIMIENTO | INTEGRAL
   precioMXN Int
-  url       String
   active    Boolean  @default(true)
   updatedAt DateTime @updatedAt
 }
