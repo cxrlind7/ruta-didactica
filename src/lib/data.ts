@@ -1,6 +1,16 @@
 export type CoverageKey = "quincena" | "mes" | "trimestre" | "ciclo";
 export type RouteKey = "base" | "visual" | "seguimiento" | "integral";
 
+// Código de ruta (BASE/VISUAL/SEGUIMIENTO/INTEGRAL) tal como se guarda en
+// OrderItem/Entitlement/PaymentProduct -- la llave real de negocio es
+// cobertura + este código (matriz de 16 enlaces de pago), no el grado.
+export const RUTA_CODE: Record<RouteKey, string> = {
+  base: "BASE",
+  visual: "VISUAL",
+  seguimiento: "SEGUIMIENTO",
+  integral: "INTEGRAL",
+};
+
 export const coverages: Record<
   CoverageKey,
   { label: string; icon: string; days: string }

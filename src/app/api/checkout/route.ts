@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { setSession } from "@/lib/session";
 import { createMpOrder } from "@/lib/mercadoPagoOrder";
-import { routePriceMatrix, RouteKey } from "@/lib/data";
+import { RouteKey } from "@/lib/data";
 
 type CheckoutBody = {
   grado?: unknown;
@@ -29,13 +29,6 @@ const RUTA_A_KEY: Record<string, RouteKey> = {
 
 const COBERTURAS = ["quincena", "mes", "trimestre", "ciclo"] as const;
 type Cobertura = (typeof COBERTURAS)[number];
-
-function priceTierFor(cobertura: Cobertura, periodoComprado: string) {
-  if (cobertura === "quincena") return "quincena" as const;
-  if (cobertura === "mes") return "mes" as const;
-  if (cobertura === "trimestre") return periodoComprado === "T1" ? ("trimestre1" as const) : ("trimestre23" as const);
-  return "ciclo" as const;
-}
 
 function coberturaColumn(cobertura: Cobertura) {
   if (cobertura === "quincena") return "compraQuincena" as const;
@@ -90,8 +83,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Ese periodo no existe para ese grado y ruta" }, { status: 400 });
   }
 
-  const priceTier = priceTierFor(cobertura, periodoComprado);
-  const priceMXN = routePriceMatrix[rutaKey][priceTier];
+  const producto = await prisma.paymentProduct.findFirst({ where: { cobertura, ruta: rutaCodigo, active: true } });
+  if (!producto) {
+    return NextResponse.json({ error: "Ese producto no está disponible por ahora" }, { status: 400 });
+  }
+  const priceMXN = producto.precioMXN;
 
   const [firstName, ...rest] = payerName ? payerName.split(" ") : [payerEmail.split("@")[0]];
   const lastName = rest.join(" ") || "Comprador";
@@ -135,6 +131,7 @@ export async function POST(req: NextRequest) {
             ruta: rutaCodigo,
             cobertura,
             periodoComprado,
+            paymentCode: producto.codigo,
           },
         ],
       },

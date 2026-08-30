@@ -1,22 +1,17 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  coverages,
-  formatMXN,
-  priceTiers,
-  routePriceMatrix,
-  routes,
-  CoverageKey,
-  PriceTierKey,
-  RouteKey,
-} from "@/lib/data";
-import RouteCards from "@/components/RouteCards";
+import { coverages, formatMXN, routes, CoverageKey, RouteKey, RUTA_CODE } from "@/lib/data";
+import { prisma } from "@/lib/prisma";
+import PurchaseWizard from "@/components/PurchaseWizard";
 import FAQAccordion from "@/components/FAQAccordion";
 import Reveal from "@/components/Reveal";
 import { ArrowRightIcon } from "@/components/icons";
 
+// Los precios de la tabla salen de PaymentProduct (editable desde el panel
+// admin) -- no se puede prerenderizar en build time o quedarían congelados.
+export const dynamic = "force-dynamic";
+
 const routeKeys = Object.keys(routes) as RouteKey[];
-const tierKeys = Object.keys(priceTiers) as PriceTierKey[];
 const coverageKeys = Object.keys(coverages) as CoverageKey[];
 
 const stats = [
@@ -116,7 +111,13 @@ function SectionHeading({
   );
 }
 
-export default function PlanesPage() {
+const COBERTURA_ORDEN: CoverageKey[] = ["quincena", "mes", "trimestre", "ciclo"];
+
+export default async function PlanesPage() {
+  const productos = await prisma.paymentProduct.findMany({ where: { active: true } });
+  const precioDe = (cobertura: CoverageKey, ruta: RouteKey) =>
+    productos.find((p) => p.cobertura === cobertura && p.ruta === RUTA_CODE[ruta])?.precioMXN ?? null;
+
   return (
     <>
       {/* Hero */}
@@ -217,7 +218,7 @@ export default function PlanesPage() {
             subtitle="Elige tu grado y cobertura, y compra directamente. Cada ruta suma más recursos sin cambiar la cobertura temporal."
             light
           />
-          <RouteCards />
+          <PurchaseWizard />
           <p className="text-sm text-slate-300">
             <span className="font-semibold text-white">Entre más cobertura, mayor ahorro:</span> el mes
             ya ahorra frente a dos quincenas, el trimestre suma un descuento adicional y el ciclo
@@ -289,17 +290,20 @@ export default function PlanesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {tierKeys.map((tier) => (
-                  <tr key={tier}>
+                {COBERTURA_ORDEN.map((cobertura) => (
+                  <tr key={cobertura}>
                     <td className="px-4 py-3">
-                      <span className="font-medium text-rd-navy">{priceTiers[tier].label}</span>
-                      <span className="block text-[11px] text-slate-400">{priceTiers[tier].detail}</span>
+                      <span className="font-medium text-rd-navy">{coverages[cobertura].label}</span>
+                      <span className="block text-[11px] text-slate-400">{coverages[cobertura].days}</span>
                     </td>
-                    {routeKeys.map((key) => (
-                      <td key={key} className="px-4 py-3 text-center font-semibold text-rd-navy">
-                        {formatMXN(routePriceMatrix[key][tier])}
-                      </td>
-                    ))}
+                    {routeKeys.map((key) => {
+                      const precio = precioDe(cobertura, key);
+                      return (
+                        <td key={key} className="px-4 py-3 text-center font-semibold text-rd-navy">
+                          {precio != null ? formatMXN(precio) : "—"}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
