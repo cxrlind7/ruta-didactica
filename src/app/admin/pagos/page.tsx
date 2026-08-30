@@ -54,6 +54,7 @@ export default function AdminPagosPage() {
   const router = useRouter();
   const [account, setAccount] = useState<Account | "loading">("loading");
   const [modoPago, setModoPago] = useState<string | null>(null);
+  const [permitirTarjeta, setPermitirTarjeta] = useState<boolean | null>(null);
   const [confirmingModo, setConfirmingModo] = useState<string | null>(null);
   const [productos, setProductos] = useState<Producto[] | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[] | null>(null);
@@ -63,7 +64,10 @@ export default function AdminPagosPage() {
   const loadAll = useCallback(() => {
     fetch("/api/admin/settings")
       .then((res) => res.json())
-      .then((d: { modoPago: string }) => setModoPago(d.modoPago))
+      .then((d: { modoPago: string; permitirTarjetaProduccion: boolean }) => {
+        setModoPago(d.modoPago);
+        setPermitirTarjeta(d.permitirTarjetaProduccion);
+      })
       .catch(() => setError("No se pudo cargar el modo de pago."));
     fetch("/api/admin/payment-products")
       .then((res) => res.json())
@@ -102,6 +106,25 @@ export default function AdminPagosPage() {
     } finally {
       setBusy(null);
       setConfirmingModo(null);
+    }
+  }
+
+  async function applyPermitirTarjeta(value: boolean) {
+    setBusy("tarjeta");
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permitirTarjetaProduccion: value }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setPermitirTarjeta(data.permitirTarjetaProduccion);
+    } catch {
+      setError("No se pudo actualizar la opción de tarjeta en producción.");
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -227,7 +250,8 @@ export default function AdminPagosPage() {
         <h2 className="text-sm font-bold text-rd-navy">Modo de cobro</h2>
         <p className="mt-1 text-xs text-slate-500">
           Controla cómo se cobra en todo el sitio. En pruebas se usa el checkout dinámico con tarjeta (Mercado Pago Orders
-          API); en producción, /planes redirige a los 16 enlaces fijos de Mercado Pago.
+          API) con tarjetas de prueba. En producción, el comprador elige pagar con un link de pago generado por pedido
+          (Mercado Pago Checkout Pro, confirma solo) o, si lo activas abajo, también con tarjeta.
         </p>
 
         {modoPago === null ? (
@@ -261,9 +285,31 @@ export default function AdminPagosPage() {
             </div>
             {modoPago === "produccion" && (
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200">
-                En vivo: cobrando con los enlaces reales
+                En vivo: cobrando con links de pago reales
               </span>
             )}
+          </div>
+        )}
+
+        {permitirTarjeta !== null && (
+          <div className="mt-4 rounded-rd-sm border border-slate-200 bg-slate-50 p-4">
+            <label className="flex items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={permitirTarjeta}
+                disabled={busy === "tarjeta"}
+                onChange={(e) => applyPermitirTarjeta(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-rd-violet"
+              />
+              <span>
+                <span className="block text-xs font-bold text-rd-navy">Permitir pagar con tarjeta en producción</span>
+                <span className="mt-0.5 block text-[11px] text-slate-500">
+                  Solo actívalo cuando tu integración de Mercado Pago ya esté activada/certificada para cobros reales
+                  — antes de eso, ese checkout solo acepta tarjetas de prueba, inútiles para clientes reales. Con esto
+                  apagado (por defecto), en producción el comprador solo ve la opción de link de pago.
+                </span>
+              </span>
+            </label>
           </div>
         )}
 
@@ -296,9 +342,11 @@ export default function AdminPagosPage() {
       {/* Precios y enlaces */}
       <section className="mt-6 rounded-rd-md border border-slate-200 bg-white overflow-hidden">
         <div className="border-b border-slate-100 bg-slate-50 px-5 py-3">
-          <h2 className="text-sm font-bold text-rd-navy">Precios y enlaces (16 productos)</h2>
+          <h2 className="text-sm font-bold text-rd-navy">Precios (16 productos)</h2>
           <p className="text-xs text-slate-500">
-            Un mismo código cubre los 6 grados. Desactivar un producto lo oculta en /planes sin borrar su enlace.
+            Un mismo código cubre los 6 grados. El precio de aquí es el que se usa para generar el link de pago de
+            cada compra; el campo de URL ya no se usa para cobrar, queda solo como respaldo manual. Desactivar un
+            producto lo oculta en /planes.
           </p>
         </div>
         {productos === null ? (
@@ -323,7 +371,8 @@ export default function AdminPagosPage() {
         <div className="border-b border-slate-100 bg-slate-50 px-5 py-3">
           <h2 className="text-sm font-bold text-rd-navy">Pedidos</h2>
           <p className="text-xs text-slate-500">
-            Los pedidos con enlace fijo (modo producción) quedan &ldquo;Pendiente&rdquo; hasta confirmarlos aquí a mano.
+            Los pedidos pagados por link se confirman solos en cuanto llega el webhook de Mercado Pago. Si por algún
+            motivo no llega, quedan &ldquo;Pendiente&rdquo; y puedes confirmarlos aquí a mano.
           </p>
         </div>
         {pedidos === null ? (

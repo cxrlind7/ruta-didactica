@@ -134,12 +134,22 @@ model ArchivoDrive {
   trimestre String?
 }
 
-// Ajustes globales del sitio -- fila unica ("global"). Por ahora solo
-// controla si /planes cobra con el checkout dinamico de tarjeta (modo de
-// pruebas) o redirige a los 16 enlaces fijos de Mercado Pago (produccion).
+// Ajustes globales del sitio -- fila unica ("global"). Controla si /planes
+// cobra con el checkout dinamico de tarjeta (modo de pruebas) o genera pagos
+// reales en produccion (link de Mercado Pago por pedido, mas tarjeta si
+// permitirTarjetaProduccion esta activo).
 model AppSettings {
   id        String   @id @default("global")
   modoPago  String   @default("prueba") // prueba | produccion
+
+  // En produccion, la API de Mercado Pago (MP_ACCESS_TOKEN) solo acepta
+  // tarjetas reales una vez que la integracion esta activada/certificada en
+  // el panel de Mercado Pago -- antes de eso solo aceptaria tarjetas de
+  // prueba, inservibles para clientes reales. Este flag deja la opcion de
+  // pagar con tarjeta oculta en /checkout hasta que el admin confirme (a
+  // mano, desde /admin/pagos) que esa activacion ya se completo.
+  permitirTarjetaProduccion Boolean @default(false)
+
   updatedAt DateTime @updatedAt
 }
 

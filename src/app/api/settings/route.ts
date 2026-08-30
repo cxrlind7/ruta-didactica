@@ -6,5 +6,8 @@ import { prisma } from "@/lib/prisma";
 // (redirige a los 16 enlaces fijos) sin requerir sesion de admin.
 export async function GET() {
   const settings = await prisma.appSettings.findUnique({ where: { id: "global" } });
-  return NextResponse.json({ modoPago: settings?.modoPago ?? "prueba" });
+  return NextResponse.json({
+    modoPago: settings?.modoPago ?? "prueba",
+    permitirTarjetaProduccion: settings?.permitirTarjetaProduccion ?? false,
+  });
 }

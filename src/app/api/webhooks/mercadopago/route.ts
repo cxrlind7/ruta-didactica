@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { InvalidWebhookSignatureError, WebhookSignatureValidator } from "mercadopago";
 import { prisma } from "@/lib/prisma";
-import { orderClient } from "@/lib/mercadopago";
+import { orderClient, paymentClient } from "@/lib/mercadopago";
 import { approveOrder, rejectOrder } from "@/lib/grantEntitlements";
 
 export async function POST(req: NextRequest) {
@@ -45,6 +45,42 @@ export async function POST(req: NextRequest) {
 
   if (!dataId) {
     return NextResponse.json({ error: "sin data.id" }, { status: 400 });
+  }
+
+  // Checkout Pro (link de pago por pedido, ver mercadoPagoPreference.ts)
+  // notifica con type "payment" y trae nuestro orderId en external_reference
+  // -- distinto del checkout dinámico con tarjeta (API de Orders), que
+  // notifica con type "order" y se resuelve más abajo con orderClient().
+  const topic = body?.type ?? req.nextUrl.searchParams.get("type") ?? "order";
+
+  if (topic === "payment") {
+    try {
+      const payment = await paymentClient().get({ id: dataId });
+      const localOrder = await prisma.order.findFirst({
+        where: { OR: [{ mpOrderId: dataId }, { id: payment.external_reference ?? undefined }] },
+      });
+
+      if (!localOrder) {
+        console.warn("Webhook de pago (Checkout Pro) para un pedido desconocido:", dataId);
+        return NextResponse.json({ ok: true });
+      }
+      if (localOrder.mpOrderId !== dataId) {
+        await prisma.order.update({ where: { id: localOrder.id }, data: { mpOrderId: dataId } });
+      }
+
+      if (payment.status === "approved") {
+        await approveOrder(localOrder.id);
+      } else if (payment.status === "rejected" || payment.status === "cancelled") {
+        await rejectOrder(localOrder.id, payment.status === "cancelled" ? "cancelled" : "rejected");
+      }
+      // Otros estados (pending, in_process, authorized) no cambian nada
+      // todavía -- se espera la siguiente notificación.
+
+      return NextResponse.json({ ok: true });
+    } catch (err) {
+      console.error("Error procesando webhook de pago (Checkout Pro):", err);
+      return NextResponse.json({ error: "processing failed" }, { status: 500 });
+    }
   }
 
   try {

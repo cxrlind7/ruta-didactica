@@ -31,13 +31,18 @@ export default function CheckoutPage() {
   const name = nameTouched ? nameDraft : (account?.name ?? "");
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [modoPago, setModoPago] = useState<"prueba" | "produccion" | null>(null);
+  const [permitirTarjeta, setPermitirTarjeta] = useState(false);
+  const [payWith, setPayWith] = useState<"enlace" | "tarjeta">("enlace");
   const [linkPurchasing, setLinkPurchasing] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((d: { modoPago: string }) => setModoPago(d.modoPago === "produccion" ? "produccion" : "prueba"))
+      .then((d: { modoPago: string; permitirTarjetaProduccion: boolean }) => {
+        setModoPago(d.modoPago === "produccion" ? "produccion" : "prueba");
+        setPermitirTarjeta(!!d.permitirTarjetaProduccion);
+      })
       .catch(() => setModoPago("prueba"));
   }, []);
 
@@ -148,17 +153,58 @@ export default function CheckoutPage() {
             <p className="text-xs text-slate-400">Completa tu nombre, correo y acepta los términos para continuar al pago.</p>
           ) : modoPago === "produccion" ? (
             <div className="space-y-3">
-              {linkError && (
-                <p className="rounded-rd-sm bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{linkError}</p>
+              {permitirTarjeta && (
+                <div className="inline-flex rounded-rd-md border border-slate-200 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setPayWith("enlace")}
+                    className={`rounded-rd-sm px-4 py-1.5 text-xs font-bold transition ${
+                      payWith === "enlace" ? "bg-rd-navy text-white" : "text-slate-500 hover:text-rd-navy"
+                    }`}
+                  >
+                    Link de pago
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPayWith("tarjeta")}
+                    className={`rounded-rd-sm px-4 py-1.5 text-xs font-bold transition ${
+                      payWith === "tarjeta" ? "bg-rd-navy text-white" : "text-slate-500 hover:text-rd-navy"
+                    }`}
+                  >
+                    Tarjeta
+                  </button>
+                </div>
               )}
-              <button
-                type="button"
-                disabled={linkPurchasing}
-                onClick={handleBuyLink}
-                className="w-full rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-bold text-white hover:bg-rd-navy transition disabled:opacity-60"
-              >
-                {linkPurchasing ? "Redirigiendo…" : `Pagar ${formatMXN(item.priceMXN)} con Mercado Pago`}
-              </button>
+
+              {payWith === "tarjeta" && permitirTarjeta ? (
+                <fieldset className="space-y-3">
+                  <legend className="text-sm font-semibold text-rd-navy mb-1">Pago con tarjeta</legend>
+                  <RealCatalogCardCheckout
+                    grado={item.grade}
+                    ruta={RUTA_CODE[item.route]}
+                    cobertura={item.coverage}
+                    periodoComprado={item.periodoComprado}
+                    totalMXN={item.priceMXN}
+                    payerEmail={email}
+                    payerName={name}
+                    onApproved={handleApproved}
+                  />
+                </fieldset>
+              ) : (
+                <>
+                  {linkError && (
+                    <p className="rounded-rd-sm bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{linkError}</p>
+                  )}
+                  <button
+                    type="button"
+                    disabled={linkPurchasing}
+                    onClick={handleBuyLink}
+                    className="w-full rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-bold text-white hover:bg-rd-navy transition disabled:opacity-60"
+                  >
+                    {linkPurchasing ? "Redirigiendo…" : `Pagar ${formatMXN(item.priceMXN)} con Mercado Pago`}
+                  </button>
+                </>
+              )}
             </div>
           ) : modoPago === "prueba" ? (
             <fieldset className="space-y-3">

@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { setSession } from "@/lib/session";
+import { createMpPreference } from "@/lib/mercadoPagoPreference";
 
-// Checkout en modo "producción": no tokeniza tarjeta ni llama a la API de
-// Mercado Pago -- solo registra el pedido (pending) con el código de la
-// matriz de 16 enlaces fijos y devuelve la URL a la que el sitio debe
-// redirigir. La confirmación de pago es manual desde el panel admin (ver
-// /api/admin/pedidos), tal como pide la Especificación de Enlaces de Pago
-// v1.0 en su "Fase simple".
+// Checkout en modo "producción" por enlace: no tokeniza tarjeta -- registra
+// el pedido (pending) con el código de la matriz de 16 productos (precio,
+// cobertura y ruta) y genera un link de pago real de Mercado Pago (Checkout
+// Pro) específico para ese pedido, vía la API. A diferencia de un enlace
+// fijo compartido por todos los compradores, esta preferencia lleva
+// external_reference = nuestro orderId, así el webhook puede confirmar el
+// pago automáticamente (ver /api/webhooks/mercadopago) sin depender de que
+// el admin lo confirme a mano -- aunque esa confirmación manual (ver
+// /api/admin/pedidos) se deja como respaldo si el webhook fallara.
+const RUTA_LABEL: Record<string, string> = { BASE: "Base", VISUAL: "Visual", SEGUIMIENTO: "Seguimiento", INTEGRAL: "Integral" };
+const COBERTURA_LABEL: Record<string, string> = { quincena: "Quincena", mes: "Mes", trimestre: "Trimestre", ciclo: "Ciclo completo" };
+
 type LinkCheckoutBody = {
   grado?: unknown;
   ruta?: unknown; // BASE | VISUAL | SEGUIMIENTO | INTEGRAL
@@ -78,7 +85,14 @@ export async function POST(req: NextRequest) {
   });
   await setSession({ userId: user.id, email: user.email });
 
-  // Misma protección de doble cobro que /api/checkout.
+  const title = `Ruta ${RUTA_LABEL[rutaCodigo] ?? rutaCodigo} · Grado ${grado} · ${
+    COBERTURA_LABEL[cobertura] ?? cobertura
+  } (${periodoComprado})`;
+  const origin = req.nextUrl.origin;
+
+  // Misma protección de doble cobro que /api/checkout: si ya hay un pedido
+  // pendiente igual, se reutiliza (generando una preferencia nueva, ya que
+  // las anteriores pueden haber expirado) en vez de crear otro pedido.
   const existingPending = await prisma.order.findFirst({
     where: {
       userId: user.id,
@@ -87,13 +101,16 @@ export async function POST(req: NextRequest) {
     },
   });
   if (existingPending) {
-    const existingItem = await prisma.orderItem.findFirst({ where: { orderId: existingPending.id } });
-    return NextResponse.json({
+    const pref = await createMpPreference({
       orderId: existingPending.id,
-      paymentUrl: existingItem?.paymentCode
-        ? (await prisma.paymentProduct.findUnique({ where: { codigo: existingItem.paymentCode } }))?.url
-        : producto.url,
+      title,
+      totalMXN: producto.precioMXN,
+      payerEmail,
+      payerName,
+      origin,
     });
+    if (!pref.ok) return NextResponse.json({ error: pref.error }, { status: 502 });
+    return NextResponse.json({ orderId: existingPending.id, paymentUrl: pref.initPoint });
   }
 
   const order = await prisma.order.create({
@@ -116,5 +133,17 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({ orderId: order.id, paymentUrl: producto.url });
+  const pref = await createMpPreference({
+    orderId: order.id,
+    title,
+    totalMXN: producto.precioMXN,
+    payerEmail,
+    payerName,
+    origin,
+  });
+  if (!pref.ok) {
+    return NextResponse.json({ error: pref.error, orderId: order.id }, { status: 502 });
+  }
+
+  return NextResponse.json({ orderId: order.id, paymentUrl: pref.initPoint });
 }
