@@ -12,12 +12,18 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null);
   const dataId = req.nextUrl.searchParams.get("data.id") ?? body?.data?.id ?? null;
+  const xRequestId = req.headers.get("x-request-id");
+  const xSignature = req.headers.get("x-signature");
+  console.log("Webhook MP recibido:", { dataId, xRequestId, xSignature, action: body?.action });
 
   try {
     WebhookSignatureValidator.validate({
-      xSignature: req.headers.get("x-signature"),
-      xRequestId: req.headers.get("x-request-id"),
-      dataId,
+      xSignature,
+      xRequestId,
+      // El manifest de la firma usa data.id en minúsculas cuando contiene
+      // letras (p. ej. IDs de orden como "ORDTST..."); los IDs de pago son
+      // solo numéricos así que esto no los afecta.
+      dataId: dataId ? dataId.toLowerCase() : dataId,
       secret,
     });
   } catch (err) {
@@ -45,9 +51,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    // La API de Orders no usa "approved"/"rejected": un pago exitoso queda en
+    // status "processed" (status_detail "accredited") y uno rechazado en
+    // "failed" (status_detail p. ej. "rejected_by_issuer").
     const payments = mpOrder.transactions?.payments ?? [];
-    const anyApproved = payments.some((p) => p.status === "approved");
-    const anyRejected = payments.some((p) => p.status === "rejected");
+    const anyApproved = payments.some((p) => p.status === "processed") || mpOrder.status === "processed";
+    const anyRejected = payments.some((p) => p.status === "failed" || p.status === "rejected");
+    const orderFailedOrCancelled = mpOrder.status === "cancelled" || mpOrder.status === "failed";
 
     if (anyApproved) {
       await prisma.$transaction([
@@ -61,7 +71,7 @@ export async function POST(req: NextRequest) {
           skipDuplicates: true,
         }),
       ]);
-    } else if (anyRejected || mpOrder.status === "cancelled") {
+    } else if (anyRejected || orderFailedOrCancelled) {
       await prisma.order.update({
         where: { id: localOrder.id },
         data: { status: mpOrder.status === "cancelled" ? "cancelled" : "rejected" },

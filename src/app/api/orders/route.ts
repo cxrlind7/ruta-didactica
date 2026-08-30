@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { setSession } from "@/lib/session";
 import { TEST_DOWNLOADS } from "@/lib/downloads";
-import { orderClient } from "@/lib/mercadopago";
-import { MercadoPagoError } from "mercadopago";
 
 type OrderBody = {
   itemIds?: unknown;
@@ -63,54 +61,79 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  try {
-    const mpOrder = await orderClient().create({
-      body: {
-        type: "online",
-        processing_mode: "automatic",
-        capture_mode: "automatic_async",
-        total_amount: totalMXN.toFixed(2),
-        currency: "MXN",
-        external_reference: order.id,
-        description: itemIds.map((id) => TEST_DOWNLOADS[id].title).join(", "),
-        payer: {
-          email: payerEmail,
-          first_name: firstName,
-          last_name: lastName,
-        },
-        items: itemIds.map((itemId) => ({
-          title: TEST_DOWNLOADS[itemId].title,
-          unit_price: TEST_DOWNLOADS[itemId].priceMXN.toFixed(2),
-          quantity: 1,
-          external_code: itemId,
-        })),
-        transactions: {
-          payments: [
-            {
-              amount: totalMXN.toFixed(2),
-              payment_method: {
-                id: paymentMethodId,
-                type: paymentType,
-                token,
-                installments,
-                ...(issuerId ? { statement_descriptor: "RUTA DIDACTICA" } : {}),
-              },
-            },
-          ],
-        },
+  // Se usa fetch directo (no el SDK) para crear la orden: el SDK de mercadopago
+  // descarta el detalle real del error cuando la API responde con la forma
+  // { errors: [{ code, message }] } y solo deja "MercadoPago API error"
+  // genérico, lo que hace imposible diagnosticar rechazos (p. ej. emails de
+  // sandbox inválidos) desde el catch.
+  const mpRes = await fetch("https://api.mercadopago.com/v1/orders", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+      "X-Idempotency-Key": order.id,
+    },
+    body: JSON.stringify({
+      type: "online",
+      processing_mode: "automatic",
+      capture_mode: "automatic_async",
+      total_amount: totalMXN.toFixed(2),
+      currency: "MXN",
+      external_reference: order.id,
+      description: itemIds.map((id) => TEST_DOWNLOADS[id].title).join(", "),
+      payer: {
+        email: payerEmail,
+        first_name: firstName,
+        last_name: lastName,
       },
-      requestOptions: { idempotencyKey: order.id },
-    });
+      items: itemIds.map((itemId) => ({
+        title: TEST_DOWNLOADS[itemId].title,
+        unit_price: TEST_DOWNLOADS[itemId].priceMXN.toFixed(2),
+        quantity: 1,
+        external_code: itemId,
+      })),
+      transactions: {
+        payments: [
+          {
+            amount: totalMXN.toFixed(2),
+            payment_method: {
+              id: paymentMethodId,
+              type: paymentType,
+              token,
+              installments,
+              ...(issuerId ? { statement_descriptor: "RUTA DIDACTICA" } : {}),
+            },
+          },
+        ],
+      },
+    }),
+  });
 
+  const mpData = await mpRes.json().catch(() => ({}));
+
+  if (!mpRes.ok) {
+    console.error("Mercado Pago order create failed", mpRes.status, JSON.stringify(mpData));
+    // En un rechazo (p. ej. 402 rejected_by_issuer) MP anida la orden creada
+    // bajo `data`, a diferencia del 200/201 exitoso que trae los campos al
+    // nivel raíz — guardamos el mpOrderId de cualquiera de las dos formas.
+    const failedOrderId = mpData?.data?.id ?? mpData?.id ?? null;
     await prisma.order.update({
       where: { id: order.id },
-      data: { mpOrderId: mpOrder.id },
+      data: { status: "rejected", ...(failedOrderId ? { mpOrderId: failedOrderId } : {}) },
     });
-
-    return NextResponse.json({ orderId: order.id, mpStatus: mpOrder.status ?? "created" });
-  } catch (err) {
-    await prisma.order.update({ where: { id: order.id }, data: { status: "rejected" } });
-    const message = err instanceof MercadoPagoError ? err.message : "No se pudo crear la orden";
-    return NextResponse.json({ error: message, orderId: order.id }, { status: 502 });
+    const firstError = mpData?.errors?.[0];
+    const detail =
+      [firstError?.message, ...(firstError?.details ?? [])].filter(Boolean).join(" — ") ||
+      mpData?.message ||
+      mpData?.error ||
+      "No se pudo crear la orden";
+    return NextResponse.json({ error: detail, orderId: order.id }, { status: 502 });
   }
+
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { mpOrderId: mpData.id },
+  });
+
+  return NextResponse.json({ orderId: order.id, mpStatus: mpData.status ?? "created" });
 }
