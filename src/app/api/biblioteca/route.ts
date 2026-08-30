@@ -64,7 +64,8 @@ export async function GET() {
   function hasEntitlement(grado: number, tipo: TipoKey, granularity: Granularity, p: Publicacion): boolean {
     if (isAdmin) return true;
     return entitlements.some(
-      (ent) => ent.ruta && RUTA_UNLOCKS[ent.ruta]?.includes(tipo) && coverageMatches(ent, granularity, p)
+      (ent) =>
+        ent.grado === grado && ent.ruta && RUTA_UNLOCKS[ent.ruta]?.includes(tipo) && coverageMatches(ent, granularity, p)
     );
   }
 
