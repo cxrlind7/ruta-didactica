@@ -17,7 +17,8 @@ type ArchivoNode = {
 
 type TipoKey = "planeacion" | "fichas" | "diapositiva" | "seguimiento";
 type TipoNode = { tipo: TipoKey; archivos: ArchivoNode[] };
-type GradoNode = { grado: number; tipos: TipoNode[] };
+type TrimestreNode = { trimestre: string; tipos: TipoNode[] };
+type GradoNode = { grado: number; trimestres: TrimestreNode[] };
 
 const TIPO_META: Record<TipoKey, { label: string; icon: typeof DocIcon; hint: string }> = {
   planeacion: { label: "Planeaciones", icon: DocIcon, hint: "Documentos editables (.docx)" },
@@ -27,6 +28,7 @@ const TIPO_META: Record<TipoKey, { label: string; icon: typeof DocIcon; hint: st
 };
 
 const GRADO_LABEL: Record<number, string> = { 1: "1º", 2: "2º", 3: "3º", 4: "4º", 5: "5º", 6: "6º" };
+const TRIMESTRE_LABEL: Record<string, string> = { T1: "Trimestre 1", T2: "Trimestre 2", T3: "Trimestre 3", CA: "Cierre anual" };
 
 function formatSize(bytes: number | null) {
   if (!bytes) return "";
@@ -40,6 +42,16 @@ function countIngested(tipos: TipoNode[]) {
   return { total, ingested };
 }
 
+function countIngestedGrado(trimestres: TrimestreNode[]) {
+  return trimestres.reduce(
+    (acc, t) => {
+      const c = countIngested(t.tipos);
+      return { total: acc.total + c.total, ingested: acc.ingested + c.ingested };
+    },
+    { total: 0, ingested: 0 }
+  );
+}
+
 type Account = { email: string; role: string } | null;
 
 export default function AdminPage() {
@@ -47,6 +59,7 @@ export default function AdminPage() {
   const [account, setAccount] = useState<Account | "loading">("loading");
   const [grados, setGrados] = useState<GradoNode[] | null>(null);
   const [selectedGrado, setSelectedGrado] = useState(1);
+  const [selectedTrimestre, setSelectedTrimestre] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,12 +85,20 @@ export default function AdminPage() {
     let total = 0;
     let ingested = 0;
     for (const g of grados) {
-      const c = countIngested(g.tipos);
+      const c = countIngestedGrado(g.trimestres);
       total += c.total;
       ingested += c.ingested;
     }
     return { total, ingested, pct: total ? Math.round((ingested / total) * 100) : 0 };
   }, [grados]);
+
+  const gradoActivo = grados?.find((g) => g.grado === selectedGrado);
+
+  const trimestreEfectivo =
+    gradoActivo && gradoActivo.trimestres.some((t) => t.trimestre === selectedTrimestre)
+      ? selectedTrimestre
+      : (gradoActivo?.trimestres[0]?.trimestre ?? null);
+  const trimestreActivo = gradoActivo?.trimestres.find((t) => t.trimestre === trimestreEfectivo);
 
   async function handleUpload(archivoDriveId: string, file: File) {
     setBusyId(archivoDriveId);
@@ -140,8 +161,6 @@ export default function AdminPage() {
     );
   }
 
-  const gradoActivo = grados?.find((g) => g.grado === selectedGrado);
-
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -182,7 +201,7 @@ export default function AdminPage() {
         <>
           <div className="mt-8 flex gap-2 overflow-x-auto pb-1">
             {grados.map((g) => {
-              const c = countIngested(g.tipos);
+              const c = countIngestedGrado(g.trimestres);
               const pct = c.total ? Math.round((c.ingested / c.total) * 100) : 0;
               const active = g.grado === selectedGrado;
               return (
@@ -208,8 +227,34 @@ export default function AdminPage() {
             })}
           </div>
 
-          <div className="mt-6 grid gap-5 sm:grid-cols-2">
-            {gradoActivo?.tipos.map((t) => (
+          {gradoActivo && gradoActivo.trimestres.length > 0 && (
+            <div className="mt-6 flex gap-2">
+              {gradoActivo.trimestres.map((t) => {
+                const c = countIngested(t.tipos);
+                const active = t.trimestre === trimestreEfectivo;
+                return (
+                  <button
+                    key={t.trimestre}
+                    type="button"
+                    onClick={() => setSelectedTrimestre(t.trimestre)}
+                    className={`rounded-rd-sm border px-3 py-1.5 text-xs font-bold transition ${
+                      active
+                        ? "border-rd-navy bg-rd-navy text-white"
+                        : "border-slate-200 bg-white text-slate-500 hover:border-rd-sky"
+                    }`}
+                  >
+                    {TRIMESTRE_LABEL[t.trimestre] ?? t.trimestre}
+                    <span className={active ? "ml-1.5 text-white/70" : "ml-1.5 text-slate-400"}>
+                      {c.ingested}/{c.total}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="mt-4 grid gap-5 sm:grid-cols-2">
+            {trimestreActivo?.tipos.map((t) => (
               <TipoCard
                 key={t.tipo}
                 tipo={t}
@@ -218,6 +263,9 @@ export default function AdminPage() {
                 onDelete={handleDelete}
               />
             ))}
+            {gradoActivo && gradoActivo.trimestres.length === 0 && (
+              <p className="text-sm text-slate-400">Todavía no hay contenido cargado para este grado.</p>
+            )}
           </div>
         </>
       )}

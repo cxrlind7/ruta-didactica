@@ -3,18 +3,18 @@ import { prisma } from "@/lib/prisma";
 
 export type TipoKey = "planeacion" | "fichas" | "diapositiva" | "seguimiento";
 
-const RUTA_UNLOCKS: Record<string, TipoKey[]> = {
+export const RUTA_UNLOCKS: Record<string, TipoKey[]> = {
   BASE: ["planeacion", "fichas"],
   VISUAL: ["planeacion", "fichas", "diapositiva"],
   SEGUIMIENTO: ["planeacion", "fichas", "seguimiento"],
   INTEGRAL: ["planeacion", "fichas", "diapositiva", "seguimiento"],
 };
 
-type Granularity = "quincena" | "mes" | "trimestre";
+export type Granularity = "quincena" | "mes" | "trimestre";
 
-type Entitlement = { ruta: string | null; cobertura: string | null; periodoComprado: string | null };
+export type EntitlementLike = { ruta: string | null; cobertura: string | null; periodoComprado: string | null };
 
-function coverageMatches(ent: Entitlement, granularity: Granularity, p: Publicacion): boolean {
+export function coverageMatches(ent: EntitlementLike, granularity: Granularity, p: Publicacion): boolean {
   if (ent.cobertura === "ciclo") return true;
   if (granularity === "trimestre") return ent.cobertura === "trimestre" && ent.periodoComprado === p.trimestre;
   if (granularity === "mes") {

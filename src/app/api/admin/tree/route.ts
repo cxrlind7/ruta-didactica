@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/lib/admin";
 
+type TipoKey = "planeacion" | "fichas" | "diapositiva" | "seguimiento";
+
 type Slot = {
   key: string;
   label: string;
   nombreArchivo: string;
+  trimestre: string;
+  tipo: TipoKey;
 };
 
 type ArchivoNode = {
@@ -18,8 +22,12 @@ type ArchivoNode = {
   ingestedAt: string | null;
 };
 
-type TipoNode = { tipo: "planeacion" | "fichas" | "diapositiva" | "seguimiento"; archivos: ArchivoNode[] };
-type GradoNode = { grado: number; tipos: TipoNode[] };
+type TipoNode = { tipo: TipoKey; archivos: ArchivoNode[] };
+type TrimestreNode = { trimestre: string; tipos: TipoNode[] };
+type GradoNode = { grado: number; trimestres: TrimestreNode[] };
+
+const TRIMESTRE_ORDEN = ["T1", "T2", "T3", "CA"];
+const TIPOS: TipoKey[] = ["planeacion", "fichas", "diapositiva", "seguimiento"];
 
 export async function GET() {
   const auth = await requireAdminUser();
@@ -29,53 +37,61 @@ export async function GET() {
   const archivos = await prisma.archivoDrive.findMany();
   const archivoByNombre = new Map(archivos.map((a) => [a.nombreArchivo, a]));
 
-  // Dedup por grado+periodo (los 4 rutas comparten el mismo archivo fisico).
+  // Dedup por grado+periodo (los 4 rutas comparten el mismo archivo fisico)
+  // y por grado+mes / grado+trimestre para los consolidados de Seguimiento.
   const seenGradoPeriodo = new Set<string>();
   const seenMes = new Set<string>();
   const seenTrimestre = new Set<string>();
-
-  const gradosMap = new Map<number, { planeacion: Slot[]; fichas: Slot[]; diapositiva: Slot[]; seguimiento: Slot[] }>();
-  const getGrado = (g: number) => {
-    if (!gradosMap.has(g)) gradosMap.set(g, { planeacion: [], fichas: [], diapositiva: [], seguimiento: [] });
-    return gradosMap.get(g)!;
+  const slotsPorGrado = new Map<number, Slot[]>();
+  const getSlots = (g: number) => {
+    if (!slotsPorGrado.has(g)) slotsPorGrado.set(g, []);
+    return slotsPorGrado.get(g)!;
   };
 
   for (const p of publicaciones) {
     const gpKey = `${p.grado}|${p.periodo}`;
     if (!seenGradoPeriodo.has(gpKey)) {
       seenGradoPeriodo.add(gpKey);
-      const grado = getGrado(p.grado);
-      if (p.planeacionArchivo) grado.planeacion.push({ key: `pl:${p.periodo}`, label: p.periodo, nombreArchivo: p.planeacionArchivo });
-      if (p.fichasArchivo) grado.fichas.push({ key: `fi:${p.periodo}`, label: p.periodo, nombreArchivo: p.fichasArchivo });
+      const slots = getSlots(p.grado);
+      if (p.planeacionArchivo)
+        slots.push({ key: `pl:${p.periodo}`, label: p.periodo, nombreArchivo: p.planeacionArchivo, trimestre: p.trimestre, tipo: "planeacion" });
+      if (p.fichasArchivo)
+        slots.push({ key: `fi:${p.periodo}`, label: p.periodo, nombreArchivo: p.fichasArchivo, trimestre: p.trimestre, tipo: "fichas" });
       if (p.diapositivaS01Archivo)
-        grado.diapositiva.push({ key: `di:${p.periodo}:S01`, label: `${p.periodo} · S01`, nombreArchivo: p.diapositivaS01Archivo });
+        slots.push({ key: `di:${p.periodo}:S01`, label: `${p.periodo} · S01`, nombreArchivo: p.diapositivaS01Archivo, trimestre: p.trimestre, tipo: "diapositiva" });
       if (p.diapositivaS02Archivo)
-        grado.diapositiva.push({ key: `di:${p.periodo}:S02`, label: `${p.periodo} · S02`, nombreArchivo: p.diapositivaS02Archivo });
+        slots.push({ key: `di:${p.periodo}:S02`, label: `${p.periodo} · S02`, nombreArchivo: p.diapositivaS02Archivo, trimestre: p.trimestre, tipo: "diapositiva" });
       if (p.diapositivaS03Archivo)
-        grado.diapositiva.push({ key: `di:${p.periodo}:S03`, label: `${p.periodo} · S03`, nombreArchivo: p.diapositivaS03Archivo });
+        slots.push({ key: `di:${p.periodo}:S03`, label: `${p.periodo} · S03`, nombreArchivo: p.diapositivaS03Archivo, trimestre: p.trimestre, tipo: "diapositiva" });
       if (p.seguimientoQuincenaArchivo)
-        grado.seguimiento.push({
+        slots.push({
           key: `sq:${p.periodo}`,
           label: `Quincena · ${p.periodo}`,
           nombreArchivo: p.seguimientoQuincenaArchivo,
+          trimestre: p.trimestre,
+          tipo: "seguimiento",
         });
     }
     const mesKey = `${p.grado}|${p.mesComercial}`;
     if (!seenMes.has(mesKey) && p.seguimientoMesArchivo) {
       seenMes.add(mesKey);
-      getGrado(p.grado).seguimiento.push({
+      getSlots(p.grado).push({
         key: `sm:${p.mesComercial}`,
         label: `Mes · ${p.mesComercial}`,
         nombreArchivo: p.seguimientoMesArchivo,
+        trimestre: p.trimestre,
+        tipo: "seguimiento",
       });
     }
     const triKey = `${p.grado}|${p.trimestre}`;
     if (!seenTrimestre.has(triKey) && p.seguimientoTrimestreArchivo) {
       seenTrimestre.add(triKey);
-      getGrado(p.grado).seguimiento.push({
+      getSlots(p.grado).push({
         key: `st:${p.trimestre}`,
         label: `Trimestre · ${p.trimestre}`,
         nombreArchivo: p.seguimientoTrimestreArchivo,
+        trimestre: p.trimestre,
+        tipo: "seguimiento",
       });
     }
   }
@@ -93,15 +109,26 @@ export async function GET() {
     };
   };
 
-  const grados: GradoNode[] = Array.from(gradosMap.entries())
+  const grados: GradoNode[] = Array.from(slotsPorGrado.entries())
     .sort(([a], [b]) => a - b)
-    .map(([grado, slots]) => ({
-      grado,
-      tipos: (["planeacion", "fichas", "diapositiva", "seguimiento"] as const).map((tipo) => ({
-        tipo,
-        archivos: slots[tipo].map(toArchivoNode),
-      })),
-    }));
+    .map(([grado, slots]) => {
+      const trimestresPresentes = Array.from(new Set(slots.map((s) => s.trimestre))).sort(
+        (a, b) => TRIMESTRE_ORDEN.indexOf(a) - TRIMESTRE_ORDEN.indexOf(b)
+      );
+      return {
+        grado,
+        trimestres: trimestresPresentes.map((trimestre) => {
+          const slotsDelTrimestre = slots.filter((s) => s.trimestre === trimestre);
+          return {
+            trimestre,
+            tipos: TIPOS.map((tipo) => ({
+              tipo,
+              archivos: slotsDelTrimestre.filter((s) => s.tipo === tipo).map(toArchivoNode),
+            })).filter((t) => t.archivos.length > 0),
+          };
+        }),
+      };
+    });
 
   return NextResponse.json({ grados });
 }

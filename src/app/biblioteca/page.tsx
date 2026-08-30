@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useStore, CartItem } from "@/lib/store";
 import { coverages, gradeIcon, gradeLabel, routes } from "@/lib/data";
+import BibliotecaReal from "@/components/BibliotecaReal";
 
 function downloadPlaceholder(item: CartItem) {
   const route = routes[item.route];
@@ -76,6 +77,8 @@ export default function BibliotecaPage() {
           Aquí encuentras las rutas que has adquirido, listas para descargar.
         </p>
       </div>
+
+      <BibliotecaReal />
 
       {library.length === 0 ? (
         <div className="rounded-rd-md border border-dashed border-slate-300 p-12 text-center">
