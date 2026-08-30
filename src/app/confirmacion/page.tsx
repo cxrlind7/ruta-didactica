@@ -68,9 +68,12 @@ function ConfirmacionContent() {
       .finally(() => setAccountChecked(true));
   }, []);
 
-  const displayOrder: DisplayOrder | null = lastOrder
-    ? lastOrder
-    : fetchedOrder && fetchedOrder !== "loading" && fetchedOrder !== "not_found" && fetchedOrder.status === "approved"
+  // Si la URL trae external_reference, se acaba de volver de un pago por
+  // link (Checkout Pro) -- ese resumen del servidor manda siempre, aunque
+  // `lastOrder` tenga una compra vieja guardada en localStorage de una
+  // sesión anterior (si no, se mostraría el pedido equivocado).
+  const displayOrder: DisplayOrder | null = externalReference
+    ? fetchedOrder && fetchedOrder !== "loading" && fetchedOrder !== "not_found" && fetchedOrder.status === "approved"
       ? {
           id: fetchedOrder.order.id,
           date: formatDate(fetchedOrder.order.createdAt),
@@ -83,7 +86,8 @@ function ConfirmacionContent() {
             priceMXN: item.priceMXN,
           })),
         }
-      : null;
+      : null
+    : lastOrder;
 
   if (fetchedOrder === "loading") {
     return (
