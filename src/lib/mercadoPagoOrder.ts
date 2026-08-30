@@ -65,7 +65,6 @@ export async function createMpOrder(input: CreateMpOrderInput): Promise<CreateMp
               type: input.paymentType,
               token: input.token,
               installments: input.installments,
-              ...(input.issuerId ? { issuer_id: input.issuerId } : {}),
             },
           },
         ],
