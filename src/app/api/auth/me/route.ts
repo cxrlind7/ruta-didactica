@@ -10,6 +10,6 @@ export async function GET() {
   if (!user) return NextResponse.json({ account: null });
 
   return NextResponse.json({
-    account: { email: user.email, name: user.name, hasPassword: !!user.passwordHash },
+    account: { email: user.email, name: user.name, hasPassword: !!user.passwordHash, role: user.role },
   });
 }
