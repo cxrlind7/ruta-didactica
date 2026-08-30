@@ -36,6 +36,8 @@ export default function BibliotecaReal() {
   const [grados, setGrados] = useState<GradoOut[] | null>(null);
   const [selectedTrimestre, setSelectedTrimestre] = useState<Record<number, string>>({});
   const [viewer, setViewer] = useState<{ kind: "pdf" | "docx" | "xlsx"; id: string } | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
+  const [downloadAllError, setDownloadAllError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/biblioteca")
@@ -43,6 +45,34 @@ export default function BibliotecaReal() {
       .then((data: { grados: GradoOut[] }) => setGrados(data.grados))
       .catch(() => setGrados([]));
   }, []);
+
+  // Armar el .zip toma tiempo del lado del servidor (lee, sella y comprime
+  // cada archivo) antes de que empiece a llegar algo -- un <a download>
+  // simple se queda sin dar ninguna señal durante ese rato y parece
+  // trabado. Se pide por fetch para poder mostrar un estado de "generando"
+  // mientras se espera, y recién al terminar se dispara la descarga real.
+  async function handleDownloadAll() {
+    setDownloadingAll(true);
+    setDownloadAllError(null);
+    try {
+      const res = await fetch("/api/biblioteca/descargar-todo");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "No se pudo generar la descarga.");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "Mi biblioteca - Ruta Didactica.zip";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setDownloadAllError(err instanceof Error ? err.message : "No se pudo generar la descarga.");
+    } finally {
+      setDownloadingAll(false);
+    }
+  }
 
   if (!grados) return <LoadingScreen label="Cargando tu biblioteca…" />;
 
@@ -62,14 +92,19 @@ export default function BibliotecaReal() {
 
   return (
     <div className="mb-10 space-y-6">
-      <div className="flex justify-end">
-        <a
-          href="/api/biblioteca/descargar-todo"
-          download="Mi biblioteca - Ruta Didactica.zip"
-          className="inline-flex items-center gap-2 rounded-rd-md border border-rd-violet px-4 py-2 text-xs font-bold text-rd-violet hover:bg-rd-violet/10"
+      <div className="flex flex-col items-end gap-1.5">
+        <button
+          type="button"
+          onClick={handleDownloadAll}
+          disabled={downloadingAll}
+          className="inline-flex items-center gap-2 rounded-rd-md border border-rd-violet px-4 py-2 text-xs font-bold text-rd-violet hover:bg-rd-violet/10 disabled:cursor-wait disabled:opacity-60"
         >
-          Descargar todo (.zip)
-        </a>
+          {downloadingAll && (
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-rd-violet/30 border-t-rd-violet" aria-hidden />
+          )}
+          {downloadingAll ? "Generando tu .zip…" : "Descargar todo (.zip)"}
+        </button>
+        {downloadAllError && <p className="text-[11px] font-medium text-red-600">{downloadAllError}</p>}
       </div>
       {grados.map((g) => {
         const activeTrimestre = selectedTrimestre[g.grado] ?? g.trimestres[0]?.trimestre;
