@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DocIcon, ImageIcon, ListIcon, TableIcon, TrashIcon, UploadIcon } from "@/components/icons";
 
 type ArchivoNode = {
@@ -42,6 +43,7 @@ function countIngested(tipos: TipoNode[]) {
 type Account = { email: string; role: string } | null;
 
 export default function AdminPage() {
+  const router = useRouter();
   const [account, setAccount] = useState<Account | "loading">("loading");
   const [grados, setGrados] = useState<GradoNode[] | null>(null);
   const [selectedGrado, setSelectedGrado] = useState(1);
@@ -107,6 +109,11 @@ export default function AdminPage() {
     }
   }
 
+  async function handleLogout() {
+    await fetch("/api/session", { method: "DELETE" }).catch(() => {});
+    router.push("/");
+  }
+
   if (account === "loading") return null;
 
   if (!account) {
@@ -143,6 +150,13 @@ export default function AdminPage() {
           <h1 className="mt-1 text-2xl font-extrabold text-rd-navy">Archivos del catálogo</h1>
           <p className="mt-1 text-sm text-slate-500">Sube o retira materiales por grado, sin tocar código.</p>
         </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="text-sm font-semibold text-slate-500 hover:text-rd-navy"
+        >
+          Cerrar sesión ({account.email})
+        </button>
         {overall && (
           <div className="flex items-center gap-4 rounded-rd-md border border-slate-200 bg-slate-50 px-5 py-3">
             <Ring pct={overall.pct} />
@@ -275,6 +289,7 @@ function TipoCard({
             <ArchivoRow
               key={a.key}
               archivo={a}
+              tipo={tipo.tipo}
               busy={busyId === a.archivoDriveId}
               onUpload={(file) => onUpload(a.archivoDriveId, file)}
               onDelete={() => onDelete(a.archivoDriveId)}
@@ -288,11 +303,13 @@ function TipoCard({
 
 function ArchivoRow({
   archivo,
+  tipo,
   busy,
   onUpload,
   onDelete,
 }: {
   archivo: ArchivoNode;
+  tipo: TipoKey;
   busy: boolean;
   onUpload: (file: File) => void;
   onDelete: () => void;
@@ -330,6 +347,23 @@ function ArchivoRow({
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-semibold text-emerald-700 ring-1 ring-emerald-200">
               Subido
             </span>
+            {tipo === "fichas" || tipo === "diapositiva" ? (
+              <a
+                href={`/visor/${archivo.archivoDriveId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
+              >
+                Ver
+              </a>
+            ) : (
+              <a
+                href={`/api/archivos/${archivo.archivoDriveId}/descargar`}
+                className="rounded-rd-sm border border-slate-200 px-2 py-1.5 font-semibold text-rd-navy hover:border-rd-sky"
+              >
+                Descargar
+              </a>
+            )}
             <button
               type="button"
               disabled={busy}

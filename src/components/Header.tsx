@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore } from "@/lib/store";
@@ -13,8 +14,15 @@ const navLinks = [
 ];
 
 export default function Header() {
-  const { cartCount, isLoggedIn, account } = useStore();
+  const { cartCount, isLoggedIn, account, logout } = useStore();
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  function handleLogout() {
+    logout();
+    setOpen(false);
+    router.push("/");
+  }
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
@@ -62,12 +70,21 @@ export default function Header() {
               </AnimatePresence>
             </Link>
             {isLoggedIn ? (
-              <Link
-                href="/biblioteca"
-                className="rounded-rd-sm border border-slate-300 px-4 py-2 text-sm font-semibold text-rd-navy hover:border-rd-sky"
-              >
-                {account?.name}
-              </Link>
+              <>
+                <Link
+                  href="/biblioteca"
+                  className="rounded-rd-sm border border-slate-300 px-4 py-2 text-sm font-semibold text-rd-navy hover:border-rd-sky"
+                >
+                  {account?.name}
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="rounded-rd-sm px-3 py-2 text-sm font-semibold text-slate-500 hover:text-rd-navy"
+                >
+                  Cerrar sesión
+                </button>
+              </>
             ) : (
               <>
                 <Link
@@ -127,6 +144,15 @@ export default function Header() {
                 >
                   Carrito ({cartCount})
                 </Link>
+                {isLoggedIn && (
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex-1 rounded-rd-sm border border-slate-300 px-3 py-2 text-center text-sm font-semibold text-rd-navy"
+                  >
+                    Cerrar sesión
+                  </button>
+                )}
                 {!isLoggedIn && (
                   <>
                     <Link

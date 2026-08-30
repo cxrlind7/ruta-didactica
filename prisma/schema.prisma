@@ -53,6 +53,14 @@ model Entitlement {
   orderId   String
   createdAt DateTime @default(now())
 
+  // Copiados de OrderItem al momento de otorgar el entitlement (solo para
+  // compras del catalogo real via /api/checkout) -- el "motor de reglas"
+  // los usa para decidir que archivos desbloquea esta compra.
+  grado           Int?
+  ruta            String?
+  cobertura       String?
+  periodoComprado String?
+
   @@unique([userId, itemId])
 }
 

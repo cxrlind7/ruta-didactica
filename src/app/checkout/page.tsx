@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { coverages, formatMXN, gradeLabel, routes } from "@/lib/data";
 import { isTestItem } from "@/lib/downloads";
 import RealPaymentCheckout from "@/components/RealPaymentCheckout";
+import LegalCheckbox from "@/components/LegalCheckbox";
 
 export default function CheckoutPage() {
   const { cart, cartTotal, checkout, account, isLoggedIn, setAccountLocal } = useStore();
@@ -16,6 +17,7 @@ export default function CheckoutPage() {
   const [payment, setPayment] = useState<"tarjeta" | "transferencia">("tarjeta");
   const [submitting, setSubmitting] = useState(false);
   const [contactConfirmed, setContactConfirmed] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
 
   const isRealPaymentOrder = cart.length > 0 && cart.every((item) => isTestItem(item.id));
 
@@ -91,14 +93,17 @@ export default function CheckoutPage() {
                 </p>
               </div>
               {!contactConfirmed && (
-                <button
-                  type="button"
-                  disabled={!name || !email.includes("@")}
-                  onClick={() => setContactConfirmed(true)}
-                  className="w-full rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-bold text-white hover:bg-rd-navy transition disabled:opacity-40"
-                >
-                  Continuar al pago
-                </button>
+                <>
+                  <LegalCheckbox checked={legalAccepted} onChange={setLegalAccepted} />
+                  <button
+                    type="button"
+                    disabled={!name || !email.includes("@") || !legalAccepted}
+                    onClick={() => setContactConfirmed(true)}
+                    className="w-full rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-bold text-white hover:bg-rd-navy transition disabled:opacity-40"
+                  >
+                    Continuar al pago
+                  </button>
+                </>
               )}
             </fieldset>
 
@@ -178,9 +183,11 @@ export default function CheckoutPage() {
               </p>
             </fieldset>
 
+            <LegalCheckbox checked={legalAccepted} onChange={setLegalAccepted} />
+
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !legalAccepted}
               className="w-full rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-bold text-white hover:bg-rd-navy transition disabled:opacity-60"
             >
               {submitting ? "Procesando…" : `Pagar ${formatMXN(cartTotal)}`}
