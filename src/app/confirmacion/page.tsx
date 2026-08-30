@@ -36,6 +36,7 @@ function ConfirmacionContent() {
   const { lastOrder, hydrated } = useStore();
   const searchParams = useSearchParams();
   const [needsPassword, setNeedsPassword] = useState<{ email: string } | null>(null);
+  const [accountChecked, setAccountChecked] = useState(false);
 
   // El pago con link (Checkout Pro) sale del sitio y vuelve por
   // back_urls.success con una recarga completa -- a diferencia del pago con
@@ -63,7 +64,8 @@ function ConfirmacionContent() {
           setNeedsPassword({ email: data.account.email });
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setAccountChecked(true));
   }, []);
 
   const displayOrder: DisplayOrder | null = lastOrder
@@ -164,12 +166,23 @@ function ConfirmacionContent() {
       )}
 
       <div className="mt-10 flex flex-wrap justify-center gap-3">
-        <Link
-          href="/biblioteca"
-          className="rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-bold text-white hover:bg-rd-navy transition"
-        >
-          Ir a mi biblioteca
-        </Link>
+        {accountChecked && !needsPassword ? (
+          <Link
+            href="/biblioteca"
+            className="rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-bold text-white hover:bg-rd-navy transition"
+          >
+            Ir a mi biblioteca
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled
+            title="Crea tu contraseña primero para entrar a tu biblioteca"
+            className="cursor-not-allowed rounded-rd-md bg-slate-200 px-6 py-3 text-sm font-bold text-slate-400"
+          >
+            Ir a mi biblioteca
+          </button>
+        )}
         <Link
           href="/planes"
           className="rounded-rd-md border border-slate-300 px-6 py-3 text-sm font-bold text-rd-navy hover:border-rd-sky transition"
