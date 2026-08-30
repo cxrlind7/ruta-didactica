@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     xRequestId,
     xSignature,
     action: body?.action,
+    allHeaders: Object.fromEntries(req.headers.entries()),
   });
 
   try {
