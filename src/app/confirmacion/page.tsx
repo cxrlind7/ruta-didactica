@@ -1,14 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
-import { formatMXN, gradeLabel, routes } from "@/lib/data";
+import { formatMXN, gradeLabel, routes, RouteKey } from "@/lib/data";
+
+type DisplayItem = { id: string; route: RouteKey; grade: number; periodoLabel: string; priceMXN: number };
+type DisplayOrder = { id: string; date: string; items: DisplayItem[]; total: number };
+
+type FetchedOrder = {
+  status: string;
+  order: {
+    id: string;
+    total: number;
+    createdAt: string;
+    items: { id: string; route: string; grado: number; periodoLabel: string; priceMXN: number }[];
+  };
+};
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("es-MX", { year: "numeric", month: "long", day: "numeric" });
+}
 
 export default function ConfirmacionPage() {
+  return (
+    <Suspense fallback={null}>
+      <ConfirmacionContent />
+    </Suspense>
+  );
+}
+
+function ConfirmacionContent() {
   const { lastOrder, hydrated } = useStore();
+  const searchParams = useSearchParams();
   const [needsPassword, setNeedsPassword] = useState<{ email: string } | null>(null);
+
+  // El pago con link (Checkout Pro) sale del sitio y vuelve por
+  // back_urls.success con una recarga completa -- a diferencia del pago con
+  // tarjeta (que nunca sale del sitio), acá no hay `lastOrder` en el estado
+  // local del carrito. Mercado Pago manda external_reference (nuestro
+  // orderId) de vuelta, así que se puede pedir el resumen real al servidor.
+  const externalReference = searchParams.get("external_reference");
+  const [fetchedOrder, setFetchedOrder] = useState<FetchedOrder | "loading" | "not_found" | null>(
+    externalReference ? "loading" : null
+  );
+
+  useEffect(() => {
+    if (!externalReference) return;
+    fetch(`/api/orders/${externalReference}/status`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data: FetchedOrder) => setFetchedOrder(data))
+      .catch(() => setFetchedOrder("not_found"));
+  }, [externalReference]);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -21,7 +66,32 @@ export default function ConfirmacionPage() {
       .catch(() => {});
   }, []);
 
-  if (hydrated && !lastOrder) {
+  const displayOrder: DisplayOrder | null = lastOrder
+    ? lastOrder
+    : fetchedOrder && fetchedOrder !== "loading" && fetchedOrder !== "not_found" && fetchedOrder.status === "approved"
+      ? {
+          id: fetchedOrder.order.id,
+          date: formatDate(fetchedOrder.order.createdAt),
+          total: fetchedOrder.order.total,
+          items: fetchedOrder.order.items.map((item) => ({
+            id: item.id,
+            route: (item.route as RouteKey) in routes ? (item.route as RouteKey) : "base",
+            grade: item.grado,
+            periodoLabel: item.periodoLabel,
+            priceMXN: item.priceMXN,
+          })),
+        }
+      : null;
+
+  if (fetchedOrder === "loading") {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-20 text-center">
+        <p className="text-sm text-slate-400">Confirmando tu pago…</p>
+      </div>
+    );
+  }
+
+  if (!displayOrder && (hydrated || fetchedOrder === "not_found")) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
         <h1 className="text-2xl font-bold text-rd-navy">Aún no hay una compra confirmada</h1>
@@ -36,7 +106,7 @@ export default function ConfirmacionPage() {
     );
   }
 
-  if (!lastOrder) return null;
+  if (!displayOrder) return null;
 
   return (
     <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-16 text-center">
@@ -59,11 +129,11 @@ export default function ConfirmacionPage() {
         Compra confirmada. Tus rutas ya están disponibles en tu biblioteca.
       </motion.h1>
       <p className="mt-2 text-sm text-slate-500">
-        Pedido {lastOrder.id} · {lastOrder.date}
+        Pedido {displayOrder.id} · {displayOrder.date}
       </p>
 
       <ul className="mt-8 divide-y divide-slate-200 border-y border-slate-200 text-left">
-        {lastOrder.items.map((item) => (
+        {displayOrder.items.map((item) => (
           <li key={item.id} className="flex justify-between py-3 text-sm">
             <span className="text-rd-navy font-medium">
               {routes[item.route].label} · {gradeLabel(item.grade)} · {item.periodoLabel}
@@ -74,7 +144,7 @@ export default function ConfirmacionPage() {
       </ul>
       <div className="mt-4 flex justify-between text-base font-bold text-rd-navy">
         <span>Total pagado</span>
-        <span>{formatMXN(lastOrder.total)}</span>
+        <span>{formatMXN(displayOrder.total)}</span>
       </div>
 
       {needsPassword && (

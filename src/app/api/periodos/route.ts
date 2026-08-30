@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { TRIMESTRE_LABEL, describirPeriodo } from "@/lib/periodos";
 
 // Periodos reales disponibles para comprar, por grado + cobertura --
 // sourced del calendario real (Publicacion), nunca hardcodeado (checklist
 // de la especificación: "no hardcodear la composición exacta de los
 // trimestres; usar calendario configurable").
-const TRIMESTRE_LABEL: Record<string, string> = { T1: "Trimestre 1", T2: "Trimestre 2", T3: "Trimestre 3", CA: "Cierre anual" };
 const COBERTURAS = ["quincena", "mes", "trimestre", "ciclo"] as const;
 type Cobertura = (typeof COBERTURAS)[number];
 
@@ -14,18 +14,6 @@ function coberturaColumn(cobertura: Cobertura) {
   if (cobertura === "mes") return "compraMes" as const;
   if (cobertura === "trimestre") return "compraTrimestre" as const;
   return "compraCiclo" as const;
-}
-
-// "T1_Q01" -> { full: "Trimestre 1 · Quincena 1", short: "Quincena 1" };
-// "CA" (cierre anual, tambien aparece como valor suelto en quincena/mes) se
-// queda igual que en trimestre.
-function describirPeriodo(value: string, unidad: "Quincena" | "Mes"): { full: string; short: string } {
-  const letra = unidad === "Quincena" ? "Q" : "M";
-  const match = value.match(new RegExp(`^(T[123])_${letra}(\\d+)$`));
-  if (!match) return { full: TRIMESTRE_LABEL[value] ?? value, short: TRIMESTRE_LABEL[value] ?? value };
-  const trimestre = TRIMESTRE_LABEL[match[1]] ?? match[1];
-  const numero = parseInt(match[2], 10);
-  return { full: `${trimestre} · ${unidad} ${numero}`, short: `${unidad} ${numero}` };
 }
 
 export async function GET(req: NextRequest) {
