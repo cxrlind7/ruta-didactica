@@ -32,6 +32,21 @@ export type CreateMpOrderResult =
   | { ok: true; mpOrderId: string; status: string }
   | { ok: false; mpOrderId: string | null; error: string };
 
+// La API de Orders solo acepta 'amex' | 'master' | 'visa' en
+// transactions.payments[0].payment_method.id, pero el Brick de tarjeta
+// (CardPayment) puede devolver variantes más específicas para tarjetas
+// reales (ej. débito/prepago identificadas como "debmaster" en vez de
+// "master") -- las tarjetas oficiales de prueba siempre devuelven el id
+// base, por eso esto no se había visto hasta probar con una tarjeta real.
+// Se normaliza a la red base antes de mandarlo, en vez de rechazar el pago.
+function normalizePaymentMethodId(id: string): string {
+  const lower = id.toLowerCase();
+  if (lower.includes("amex")) return "amex";
+  if (lower.includes("master")) return "master";
+  if (lower.includes("visa")) return "visa";
+  return id;
+}
+
 export async function createMpOrder(input: CreateMpOrderInput): Promise<CreateMpOrderResult> {
   const mpRes = await fetch("https://api.mercadopago.com/v1/orders", {
     method: "POST",
@@ -64,7 +79,7 @@ export async function createMpOrder(input: CreateMpOrderInput): Promise<CreateMp
           {
             amount: input.totalMXN.toFixed(2),
             payment_method: {
-              id: input.paymentMethodId,
+              id: normalizePaymentMethodId(input.paymentMethodId),
               type: input.paymentType,
               token: input.token,
               installments: input.installments,
@@ -78,7 +93,13 @@ export async function createMpOrder(input: CreateMpOrderInput): Promise<CreateMp
   const mpData = await mpRes.json().catch(() => ({}));
 
   if (!mpRes.ok) {
-    console.error("Mercado Pago order create failed", mpRes.status, JSON.stringify(mpData));
+    console.error(
+      "Mercado Pago order create failed",
+      mpRes.status,
+      JSON.stringify(mpData),
+      "payment_method_id enviado:",
+      input.paymentMethodId
+    );
     // En un rechazo (p. ej. 402 rejected_by_issuer) MP anida la orden creada
     // bajo `data`, a diferencia del 200/201 exitoso que trae los campos al
     // nivel raíz.
