@@ -16,6 +16,18 @@ function coberturaColumn(cobertura: Cobertura) {
   return "compraCiclo" as const;
 }
 
+// "T1_Q01" -> { full: "Trimestre 1 · Quincena 1", short: "Quincena 1" };
+// "CA" (cierre anual, tambien aparece como valor suelto en quincena/mes) se
+// queda igual que en trimestre.
+function describirPeriodo(value: string, unidad: "Quincena" | "Mes"): { full: string; short: string } {
+  const letra = unidad === "Quincena" ? "Q" : "M";
+  const match = value.match(new RegExp(`^(T[123])_${letra}(\\d+)$`));
+  if (!match) return { full: TRIMESTRE_LABEL[value] ?? value, short: TRIMESTRE_LABEL[value] ?? value };
+  const trimestre = TRIMESTRE_LABEL[match[1]] ?? match[1];
+  const numero = parseInt(match[2], 10);
+  return { full: `${trimestre} · ${unidad} ${numero}`, short: `${unidad} ${numero}` };
+}
+
 export async function GET(req: NextRequest) {
   const grado = Number(req.nextUrl.searchParams.get("grado"));
   const cobertura = req.nextUrl.searchParams.get("cobertura") as Cobertura | null;
@@ -34,13 +46,27 @@ export async function GET(req: NextRequest) {
   });
 
   const seen = new Set<string>();
-  const periodos: { value: string; label: string }[] = [];
+  const periodos: { value: string; label: string; shortLabel: string }[] = [];
   for (const p of publicaciones) {
     const value = p[columna];
     if (!value || seen.has(value)) continue;
     seen.add(value);
-    const label = cobertura === "trimestre" ? (TRIMESTRE_LABEL[value] ?? value) : cobertura === "ciclo" ? "Ciclo completo 2026-2027" : value;
-    periodos.push({ value, label });
+
+    let label = value;
+    let shortLabel = value;
+    if (cobertura === "trimestre") {
+      label = TRIMESTRE_LABEL[value] ?? value;
+      shortLabel = label;
+    } else if (cobertura === "ciclo") {
+      label = "Ciclo completo 2026-2027";
+      shortLabel = label;
+    } else if (cobertura === "quincena") {
+      ({ full: label, short: shortLabel } = describirPeriodo(value, "Quincena"));
+    } else if (cobertura === "mes") {
+      ({ full: label, short: shortLabel } = describirPeriodo(value, "Mes"));
+    }
+
+    periodos.push({ value, label, shortLabel });
   }
 
   return NextResponse.json({ periodos });

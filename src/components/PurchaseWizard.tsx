@@ -23,7 +23,7 @@ const routeKeys = Object.keys(routes) as RouteKey[];
 const TRIMESTRE_TAB_LABEL: Record<string, string> = { T1: "Trimestre 1", T2: "Trimestre 2", T3: "Trimestre 3", CA: "Cierre anual" };
 
 type Producto = { codigo: string; cobertura: string; ruta: string; precioMXN: number };
-type Periodo = { value: string; label: string };
+type Periodo = { value: string; label: string; shortLabel: string };
 
 function periodoGroup(value: string): string {
   return value.includes("_") ? value.split("_")[0] : value;
@@ -306,7 +306,7 @@ export default function PurchaseWizard() {
                             : "border-white/15 text-white hover:border-rd-sky/60"
                         }`}
                       >
-                        {p.label}
+                        {groupPeriods ? p.shortLabel : p.label}
                       </button>
                     ))}
                   </div>
