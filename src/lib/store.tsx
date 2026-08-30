@@ -9,23 +9,32 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { CoverageKey, RouteKey, formatMXN, priceForRoute, routes } from "./data";
+import { CoverageKey, RouteKey, formatMXN, routes } from "./data";
 
 export type CartItem = {
   id: string;
   route: RouteKey;
   grade: number;
   coverage: CoverageKey;
+  periodoComprado: string;
+  periodoLabel: string;
   priceMXN: number;
 };
 
-export function cartItemId(route: RouteKey, grade: number, coverage: CoverageKey) {
-  return `${route}-${grade}-${coverage}`;
+export function cartItemId(route: RouteKey, grade: number, coverage: CoverageKey, periodoComprado: string) {
+  return `${route}-${grade}-${coverage}-${periodoComprado}`;
 }
 
 function isValidCartItem(item: unknown): item is CartItem {
   const i = item as Partial<CartItem> | null;
-  return !!i && typeof i === "object" && !!i.route && i.route in routes && typeof i.grade === "number";
+  return (
+    !!i &&
+    typeof i === "object" &&
+    !!i.route &&
+    i.route in routes &&
+    typeof i.grade === "number" &&
+    typeof i.periodoComprado === "string"
+  );
 }
 
 type Order = {
@@ -42,17 +51,24 @@ type Account = {
 
 type StoreState = {
   cart: CartItem[];
-  addToCart: (route: RouteKey, grade: number, coverage: CoverageKey) => void;
+  addToCart: (
+    route: RouteKey,
+    grade: number,
+    coverage: CoverageKey,
+    periodoComprado: string,
+    periodoLabel: string,
+    priceMXN: number
+  ) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
-  isInCart: (route: RouteKey, grade: number, coverage: CoverageKey) => boolean;
+  isInCart: (route: RouteKey, grade: number, coverage: CoverageKey, periodoComprado: string) => boolean;
   cartCount: number;
   cartTotal: number;
   cartTotalLabel: string;
 
   library: CartItem[];
   lastOrder: Order | null;
-  checkout: () => Order;
+  completeOrder: (items: CartItem[]) => Order;
 
   account: Account;
   setAccountLocal: (email: string, name?: string) => void;
@@ -64,10 +80,10 @@ type StoreState = {
 
 const StoreContext = createContext<StoreState | null>(null);
 
-// v2: el carrito pasó de slugs de producto individuales a selecciones de
-// ruta + grado + cobertura; se cambia la clave para no heredar datos viejos
+// v3: el carrito ahora guarda un periodo real (ej. "T1_Q01"), no solo
+// ruta+grado+cobertura -- se cambia la clave para no heredar carritos viejos
 // con una forma incompatible desde el localStorage de los usuarios.
-const LS_CART = "rd-cart-v2";
+const LS_CART = "rd-cart-v3";
 const LS_LIBRARY = "rd-library-v2";
 const LS_ACCOUNT = "rd-account";
 const LS_LAST_ORDER = "rd-last-order-v2";
@@ -116,14 +132,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (hydrated) window.localStorage.setItem(LS_LAST_ORDER, JSON.stringify(lastOrder));
   }, [lastOrder, hydrated]);
 
-  const addToCart = useCallback((route: RouteKey, grade: number, coverage: CoverageKey) => {
-    const id = cartItemId(route, grade, coverage);
-    setCart((prev) =>
-      prev.some((item) => item.id === id)
-        ? prev
-        : [...prev, { id, route, grade, coverage, priceMXN: priceForRoute(route, coverage) }]
-    );
-  }, []);
+  const addToCart = useCallback(
+    (route: RouteKey, grade: number, coverage: CoverageKey, periodoComprado: string, periodoLabel: string, priceMXN: number) => {
+      const id = cartItemId(route, grade, coverage, periodoComprado);
+      setCart((prev) =>
+        prev.some((item) => item.id === id) ? prev : [...prev, { id, route, grade, coverage, periodoComprado, periodoLabel, priceMXN }]
+      );
+    },
+    []
+  );
 
   const removeFromCart = useCallback((id: string) => {
     setCart((prev) => prev.filter((item) => item.id !== id));
@@ -132,14 +149,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const clearCart = useCallback(() => setCart([]), []);
 
   const isInCart = useCallback(
-    (route: RouteKey, grade: number, coverage: CoverageKey) =>
-      cart.some((item) => item.id === cartItemId(route, grade, coverage)),
+    (route: RouteKey, grade: number, coverage: CoverageKey, periodoComprado: string) =>
+      cart.some((item) => item.id === cartItemId(route, grade, coverage, periodoComprado)),
     [cart]
   );
 
   const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + item.priceMXN, 0), [cart]);
 
-  const checkout = useCallback(() => {
+  // A diferencia del carrito simulado original, el pago real procesa un
+  // articulo (o los que se le pasen) a la vez -- un enlace fijo de Mercado
+  // Pago no puede cobrar dos combinaciones distintas en un solo pago.
+  const completeOrder = useCallback((items: CartItem[]) => {
     const order: Order = {
       id: `RD-${Date.now().toString().slice(-8)}`,
       date: new Date().toLocaleDateString("es-MX", {
@@ -147,17 +167,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         month: "long",
         day: "numeric",
       }),
-      items: cart,
-      total: cartTotal,
+      items,
+      total: items.reduce((sum, item) => sum + item.priceMXN, 0),
     };
     setLibrary((prev) => {
       const existingIds = new Set(prev.map((item) => item.id));
-      return [...prev, ...cart.filter((item) => !existingIds.has(item.id))];
+      return [...prev, ...items.filter((item) => !existingIds.has(item.id))];
     });
     setLastOrder(order);
-    setCart([]);
+    setCart((prev) => prev.filter((item) => !items.some((i) => i.id === item.id)));
     return order;
-  }, [cart, cartTotal]);
+  }, []);
 
   // Solo actualiza el espejo local: se usa después de que /api/auth/login o
   // /api/auth/register ya validaron la contraseña y crearon la sesión de
@@ -182,7 +202,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     cartTotalLabel: formatMXN(cartTotal),
     library,
     lastOrder,
-    checkout,
+    completeOrder,
     account,
     setAccountLocal,
     logout,

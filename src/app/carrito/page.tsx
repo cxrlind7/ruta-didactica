@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "@/lib/store";
-import { coverages, formatMXN, gradeLabel, routes } from "@/lib/data";
+import { formatMXN, gradeLabel, routes } from "@/lib/data";
 
 export default function CarritoPage() {
   const { cart, removeFromCart, cartTotal, hydrated } = useStore();
@@ -53,7 +53,7 @@ export default function CarritoPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-rd-navy">{route.label}</p>
                     <p className="text-xs text-slate-500 mt-1">
-                      {gradeLabel(item.grade)} · {coverages[item.coverage].label}
+                      {gradeLabel(item.grade)} · {item.periodoLabel}
                     </p>
                   </div>
                   <span className="text-sm font-bold text-rd-navy whitespace-nowrap">{formatMXN(item.priceMXN)}</span>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
-import { coverages, formatMXN, gradeLabel, routes } from "@/lib/data";
+import { formatMXN, gradeLabel, routes } from "@/lib/data";
 
 export default function ConfirmacionPage() {
   const { lastOrder, hydrated } = useStore();
@@ -66,7 +66,7 @@ export default function ConfirmacionPage() {
         {lastOrder.items.map((item) => (
           <li key={item.id} className="flex justify-between py-3 text-sm">
             <span className="text-rd-navy font-medium">
-              {routes[item.route].label} · {gradeLabel(item.grade)} · {coverages[item.coverage].label}
+              {routes[item.route].label} · {gradeLabel(item.grade)} · {item.periodoLabel}
             </span>
             <span className="font-semibold text-slate-500">{formatMXN(item.priceMXN)}</span>
           </li>

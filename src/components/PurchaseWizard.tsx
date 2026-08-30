@@ -3,19 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  CoverageKey,
-  RouteKey,
-  RUTA_CODE,
-  coverages,
-  formatMXN,
-  gradeIcon,
-  gradeLabel,
-  grades,
-  routes,
-} from "@/lib/data";
-import LegalCheckbox from "@/components/LegalCheckbox";
-import RealCatalogCardCheckout from "@/components/RealCatalogCardCheckout";
+import { CoverageKey, RouteKey, RUTA_CODE, coverages, formatMXN, gradeIcon, gradeLabel, grades, routes } from "@/lib/data";
+import { useStore } from "@/lib/store";
 import { CheckIcon } from "@/components/icons";
 
 const coverageKeys = Object.keys(coverages) as CoverageKey[];
@@ -30,10 +19,10 @@ function periodoGroup(value: string): string {
 }
 
 // Selector de compra en 3 pasos: 1) grado (obligatorio para avanzar), 2)
-// cobertura, 3) periodo real + modalidad + resumen + pago. El paso 3 usa
-// modo de pruebas (tarjeta, /api/checkout) o producción (enlace fijo de
-// Mercado Pago, /api/checkout/link) según el ajuste global del panel admin.
+// cobertura, 3) ruta + periodo real. Termina en "agregar al carrito" -- el
+// checkbox legal, el resumen final y el pago viven en /carrito y /checkout.
 export default function PurchaseWizard() {
+  const { addToCart, setAccountLocal } = useStore();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [grado, setGrado] = useState<number | null>(null);
   const [cobertura, setCobertura] = useState<CoverageKey | null>(null);
@@ -43,24 +32,16 @@ export default function PurchaseWizard() {
   const [selectedRuta, setSelectedRuta] = useState<RouteKey | null>(null);
 
   const [productos, setProductos] = useState<Producto[] | null>(null);
-  const [modoPago, setModoPago] = useState<"prueba" | "produccion" | null>(null);
 
   const [payerName, setPayerName] = useState("");
   const [payerEmail, setPayerEmail] = useState("");
-  const [legalOk, setLegalOk] = useState(false);
-  const [purchasing, setPurchasing] = useState(false);
-  const [purchaseError, setPurchaseError] = useState<string | null>(null);
-  const [approvedOrderId, setApprovedOrderId] = useState<string | null>(null);
+  const [addedToCart, setAddedToCart] = useState(false);
 
   useEffect(() => {
     fetch("/api/payment-products")
       .then((r) => r.json())
       .then((d: { productos: Producto[] }) => setProductos(d.productos))
       .catch(() => setProductos([]));
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((d: { modoPago: string }) => setModoPago(d.modoPago === "produccion" ? "produccion" : "prueba"))
-      .catch(() => setModoPago("prueba"));
   }, []);
 
   const periodosKey = grado != null && cobertura != null ? `${grado}|${cobertura}` : null;
@@ -88,6 +69,7 @@ export default function PurchaseWizard() {
     setCobertura(null);
     setPeriodo(null);
     setSelectedRuta(null);
+    setAddedToCart(false);
     setStep(2);
   }
 
@@ -95,6 +77,7 @@ export default function PurchaseWizard() {
     setCobertura(c);
     setPeriodo(null);
     setSelectedRuta(null);
+    setAddedToCart(false);
     setStep(3);
   }
 
@@ -106,41 +89,25 @@ export default function PurchaseWizard() {
 
   function selectRuta(ruta: RouteKey) {
     setSelectedRuta(ruta);
-    setPurchaseError(null);
+    setAddedToCart(false);
   }
 
-  async function handleBuyLink() {
-    if (!grado || !cobertura || !periodo || !selectedRuta) return;
-    setPurchasing(true);
-    setPurchaseError(null);
-    try {
-      const res = await fetch("/api/checkout/link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          grado,
-          ruta: RUTA_CODE[selectedRuta],
-          cobertura,
-          periodoComprado: periodo,
-          payerEmail,
-          payerName,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setPurchaseError(data.error || "No se pudo iniciar el pago.");
-        return;
-      }
-      window.location.href = data.paymentUrl;
-    } catch {
-      setPurchaseError("No se pudo iniciar el pago.");
-    } finally {
-      setPurchasing(false);
-    }
+  function handleAddToCart() {
+    if (!grado || !cobertura || !periodo || !selectedRuta || totalMXN == null) return;
+    const periodoLabel = periodos?.find((p) => p.value === periodo)?.label ?? periodo;
+    addToCart(selectedRuta, grado, cobertura, periodo, periodoLabel, totalMXN);
+    if (payerEmail.trim()) setAccountLocal(payerEmail.trim(), payerName.trim());
+    setAddedToCart(true);
+  }
+
+  function addAnother() {
+    setPeriodo(null);
+    setSelectedRuta(null);
+    setAddedToCart(false);
   }
 
   const totalMXN = selectedRuta ? priceFor(selectedRuta) : null;
-  const canPay = !!payerName.trim() && !!payerEmail.includes("@") && legalOk;
+  const canAdd = !!payerName.trim() && !!payerEmail.includes("@");
 
   const periodGroups = Array.from(new Set((periodos ?? []).map((p) => periodoGroup(p.value))));
   const groupPeriods = cobertura === "quincena" && periodGroups.length > 1;
@@ -222,7 +189,7 @@ export default function PurchaseWizard() {
         </div>
       )}
 
-      {/* Paso 3: ruta + periodo + resumen */}
+      {/* Paso 3: ruta + periodo + agregar al carrito */}
       {step === 3 && grado != null && cobertura != null && (
         <div className="space-y-5">
           <div className="rounded-rd-lg border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
@@ -317,7 +284,7 @@ export default function PurchaseWizard() {
 
           {periodo && selectedRuta && totalMXN != null && (
             <div className="rounded-rd-lg border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm">
-              <p className="text-sm font-bold text-white">Resumen de tu compra</p>
+              <p className="text-sm font-bold text-white">Resumen de esta ruta</p>
               <ul className="mt-3 space-y-1 text-sm text-slate-200">
                 <li>
                   <span className="text-slate-400">Grado:</span> {gradeLabel(grado)}
@@ -331,19 +298,27 @@ export default function PurchaseWizard() {
                 <li>
                   <span className="text-slate-400">Incluye:</span> {routes[selectedRuta].includes.join(" · ")}
                 </li>
-                <li className="pt-1 text-lg font-extrabold text-white">Total: {formatMXN(totalMXN)}</li>
+                <li className="pt-1 text-lg font-extrabold text-white">Precio: {formatMXN(totalMXN)}</li>
               </ul>
 
-              {approvedOrderId ? (
+              {addedToCart ? (
                 <div className="mt-5 rounded-rd-sm border border-emerald-400/30 bg-emerald-400/10 p-4 text-center">
-                  <p className="text-sm font-bold text-emerald-300">¡Pago aprobado!</p>
-                  <p className="mt-1 text-xs text-slate-300">Ya puedes ver tus materiales en tu biblioteca.</p>
-                  <Link
-                    href="/biblioteca"
-                    className="mt-3 inline-flex rounded-rd-md bg-white px-5 py-2.5 text-sm font-semibold text-rd-navy hover:bg-rd-sky"
-                  >
-                    Ir a mi biblioteca
-                  </Link>
+                  <p className="text-sm font-bold text-emerald-300">Se agregó a tu carrito.</p>
+                  <div className="mt-3 flex flex-wrap justify-center gap-2">
+                    <Link
+                      href="/carrito"
+                      className="inline-flex rounded-rd-md bg-white px-5 py-2.5 text-sm font-semibold text-rd-navy hover:bg-rd-sky"
+                    >
+                      Ir al carrito
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={addAnother}
+                      className="inline-flex rounded-rd-md border border-white/20 px-5 py-2.5 text-sm font-semibold text-white hover:border-white/40"
+                    >
+                      Agregar otra ruta
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="mt-5 space-y-3">
@@ -364,38 +339,16 @@ export default function PurchaseWizard() {
                     />
                   </div>
 
-                  <LegalCheckbox checked={legalOk} onChange={setLegalOk} />
-
-                  {purchaseError && (
-                    <p className="rounded-rd-sm bg-red-400/10 px-3 py-2 text-xs font-medium text-red-300">{purchaseError}</p>
-                  )}
-
-                  {!canPay ? (
-                    <p className="text-xs text-slate-400">Completa tu nombre, correo y acepta los términos para continuar.</p>
-                  ) : modoPago === "produccion" ? (
+                  {!canAdd ? (
+                    <p className="text-xs text-slate-400">Completa tu nombre y correo para agregar esta ruta al carrito.</p>
+                  ) : (
                     <button
                       type="button"
-                      disabled={purchasing}
-                      onClick={handleBuyLink}
-                      className="inline-flex items-center gap-2 rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-semibold text-white hover:bg-white hover:text-rd-navy disabled:opacity-50"
+                      onClick={handleAddToCart}
+                      className="inline-flex items-center gap-2 rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-semibold text-white hover:bg-white hover:text-rd-navy"
                     >
-                      {purchasing ? "Redirigiendo…" : `Pagar ${formatMXN(totalMXN)} con Mercado Pago`}
+                      Agregar al carrito
                     </button>
-                  ) : modoPago === "prueba" ? (
-                    <div className="rounded-rd-md bg-white p-4">
-                      <RealCatalogCardCheckout
-                        grado={grado}
-                        ruta={RUTA_CODE[selectedRuta]}
-                        cobertura={cobertura}
-                        periodoComprado={periodo}
-                        totalMXN={totalMXN}
-                        payerEmail={payerEmail}
-                        payerName={payerName}
-                        onApproved={setApprovedOrderId}
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400">Cargando forma de pago…</p>
                   )}
                 </div>
               )}
