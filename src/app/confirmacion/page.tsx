@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useStore } from "@/lib/store";
@@ -7,6 +8,18 @@ import { coverages, formatMXN, gradeLabel, routes } from "@/lib/data";
 
 export default function ConfirmacionPage() {
   const { lastOrder, hydrated } = useStore();
+  const [needsPassword, setNeedsPassword] = useState<{ email: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data: { account: { email: string; hasPassword: boolean } | null }) => {
+        if (data.account && !data.account.hasPassword) {
+          setNeedsPassword({ email: data.account.email });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   if (hydrated && !lastOrder) {
     return (
@@ -63,6 +76,22 @@ export default function ConfirmacionPage() {
         <span>Total pagado</span>
         <span>{formatMXN(lastOrder.total)}</span>
       </div>
+
+      {needsPassword && (
+        <div className="mt-8 rounded-rd-md border border-rd-violet/30 bg-rd-violet/5 p-5 text-left">
+          <p className="text-sm font-semibold text-rd-navy">Crea una contraseña para tu cuenta</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Compraste con <span className="font-medium">{needsPassword.email}</span>. Ponle una contraseña a esta
+            cuenta para poder volver a ver tus rutas después, desde cualquier dispositivo.
+          </p>
+          <Link
+            href={`/cuenta/registro?email=${encodeURIComponent(needsPassword.email)}`}
+            className="mt-3 inline-flex rounded-rd-md bg-rd-violet px-5 py-2 text-xs font-bold text-white hover:bg-rd-navy transition"
+          >
+            Crear contraseña
+          </Link>
+        </div>
+      )}
 
       <div className="mt-10 flex flex-wrap justify-center gap-3">
         <Link

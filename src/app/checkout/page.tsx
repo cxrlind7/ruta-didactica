@@ -9,7 +9,7 @@ import { isTestItem } from "@/lib/downloads";
 import RealPaymentCheckout from "@/components/RealPaymentCheckout";
 
 export default function CheckoutPage() {
-  const { cart, cartTotal, checkout, account, isLoggedIn } = useStore();
+  const { cart, cartTotal, checkout, account, isLoggedIn, setAccountLocal } = useStore();
   const router = useRouter();
   const [email, setEmail] = useState(account?.email || "");
   const [name, setName] = useState(account?.name || "");
@@ -20,6 +20,7 @@ export default function CheckoutPage() {
   const isRealPaymentOrder = cart.length > 0 && cart.every((item) => isTestItem(item.id));
 
   function handleApproved() {
+    setAccountLocal(email, name);
     checkout();
     router.push("/confirmacion");
   }

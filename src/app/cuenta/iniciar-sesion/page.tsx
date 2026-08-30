@@ -7,15 +7,35 @@ import Image from "next/image";
 import { useStore } from "@/lib/store";
 
 export default function IniciarSesionPage() {
-  const { login } = useStore();
+  const { setAccountLocal } = useStore();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    login(email);
-    router.push("/biblioteca");
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Correo o contraseña incorrectos");
+        return;
+      }
+      setAccountLocal(data.email, data.name);
+      router.push("/biblioteca");
+    } catch {
+      setError("No se pudo iniciar sesión. Intenta de nuevo.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -27,6 +47,20 @@ export default function IniciarSesionPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <p className="rounded-rd-sm bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+            {error}{" "}
+            {error.includes("incorrectos") && (
+              <>
+                ¿Compraste antes pero no tienes contraseña?{" "}
+                <Link href="/cuenta/registro" className="underline">
+                  Créala aquí
+                </Link>
+                .
+              </>
+            )}
+          </p>
+        )}
         <div>
           <label htmlFor="email" className="block text-xs font-semibold text-slate-500 mb-1">
             Correo electrónico
@@ -60,13 +94,11 @@ export default function IniciarSesionPage() {
         </div>
         <button
           type="submit"
-          className="w-full rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-bold text-white hover:bg-rd-navy transition"
+          disabled={submitting}
+          className="w-full rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-bold text-white hover:bg-rd-navy transition disabled:opacity-60"
         >
-          Iniciar sesión
+          {submitting ? "Entrando…" : "Iniciar sesión"}
         </button>
-        <p className="text-[11px] text-slate-400 text-center">
-          Demo funcional: cualquier correo y contraseña simulan el acceso.
-        </p>
       </form>
 
       <p className="mt-6 text-center text-sm text-slate-500">

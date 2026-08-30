@@ -1,22 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useStore } from "@/lib/store";
 
 export default function RegistroPage() {
-  const { login } = useStore();
-  const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  return (
+    <Suspense fallback={null}>
+      <RegistroForm />
+    </Suspense>
+  );
+}
 
-  function handleSubmit(e: React.FormEvent) {
+function RegistroForm() {
+  const { setAccountLocal } = useStore();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState(searchParams.get("email") || "");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    login(email, name);
-    router.push("/biblioteca");
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "No se pudo crear la cuenta");
+        return;
+      }
+      setAccountLocal(data.email, data.name);
+      router.push("/biblioteca");
+    } catch {
+      setError("No se pudo crear la cuenta. Intenta de nuevo.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -24,10 +53,14 @@ export default function RegistroPage() {
       <div className="text-center mb-8">
         <Image src="/brand/logo.png" alt="Ruta Didáctica" width={160} height={54} className="h-10 w-auto mx-auto mb-6" />
         <h1 className="text-2xl font-extrabold text-rd-navy">Crea tu cuenta docente</h1>
-        <p className="mt-1 text-sm text-slate-500">Regístrate para comprar y guardar tus materiales.</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Regístrate para comprar y guardar tus materiales. Si ya compraste antes con este correo, esto le pone
+          contraseña a esa cuenta.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {error && <p className="rounded-rd-sm bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{error}</p>}
         <div>
           <label htmlFor="name" className="block text-xs font-semibold text-slate-500 mb-1">
             Nombre completo
@@ -69,13 +102,11 @@ export default function RegistroPage() {
         </div>
         <button
           type="submit"
-          className="w-full rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-bold text-white hover:bg-rd-navy transition"
+          disabled={submitting}
+          className="w-full rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-bold text-white hover:bg-rd-navy transition disabled:opacity-60"
         >
-          Registrarme
+          {submitting ? "Creando cuenta…" : "Registrarme"}
         </button>
-        <p className="text-[11px] text-slate-400 text-center">
-          Demo funcional: los datos se guardan solo en tu navegador, sin envío a ningún servidor.
-        </p>
       </form>
 
       <p className="mt-6 text-center text-sm text-slate-500">

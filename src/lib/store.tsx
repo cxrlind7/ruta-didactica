@@ -55,7 +55,7 @@ type StoreState = {
   checkout: () => Order;
 
   account: Account;
-  login: (email: string, name?: string) => void;
+  setAccountLocal: (email: string, name?: string) => void;
   logout: () => void;
   isLoggedIn: boolean;
 
@@ -159,18 +159,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return order;
   }, [cart, cartTotal]);
 
-  const login = useCallback((email: string, name?: string) => {
+  // Solo actualiza el espejo local: se usa después de que /api/auth/login o
+  // /api/auth/register ya validaron la contraseña y crearon la sesión de
+  // servidor, para no volver a pegarle a /api/session (que no pide contraseña).
+  const setAccountLocal = useCallback((email: string, name?: string) => {
     setAccount({ email, name: name || email.split("@")[0] });
-    fetch("/api/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, name }),
-    }).catch(() => {
-      // Sesión de servidor best-effort: el login local (demo) sigue funcionando aunque falle.
-    });
   }, []);
 
-  const logout = useCallback(() => setAccount(null), []);
+  const logout = useCallback(() => {
+    setAccount(null);
+    fetch("/api/session", { method: "DELETE" }).catch(() => {});
+  }, []);
 
   const value: StoreState = {
     cart,
@@ -185,7 +184,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     lastOrder,
     checkout,
     account,
-    login,
+    setAccountLocal,
     logout,
     isLoggedIn: !!account,
     hydrated,
