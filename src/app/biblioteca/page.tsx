@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -22,6 +23,24 @@ function downloadPlaceholder(item: CartItem) {
 
 export default function BibliotecaPage() {
   const { library, account, isLoggedIn, hydrated } = useStore();
+  const [entitledIds, setEntitledIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetch("/api/library")
+      .then((res) => res.json())
+      .then((data: { entitlements: { itemId: string }[] }) => {
+        setEntitledIds(new Set(data.entitlements.map((e) => e.itemId)));
+      })
+      .catch(() => {});
+  }, []);
+
+  function handleDownload(item: CartItem) {
+    if (entitledIds.has(item.id)) {
+      window.open(`/api/download/${item.id}`, "_self");
+      return;
+    }
+    downloadPlaceholder(item);
+  }
 
   if (hydrated && !isLoggedIn && library.length === 0) {
     return (
@@ -100,7 +119,7 @@ export default function BibliotecaPage() {
                   <p className="mt-1 text-xs text-slate-400">{route.includes.join(" · ")}</p>
                 </div>
                 <button
-                  onClick={() => downloadPlaceholder(item)}
+                  onClick={() => handleDownload(item)}
                   className="inline-flex items-center justify-center gap-2 rounded-rd-sm bg-fn-inicio px-4 py-2 text-xs font-bold text-rd-navy hover:brightness-95 transition"
                 >
                   Descargar

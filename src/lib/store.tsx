@@ -161,6 +161,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback((email: string, name?: string) => {
     setAccount({ email, name: name || email.split("@")[0] });
+    fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, name }),
+    }).catch(() => {
+      // Sesión de servidor best-effort: el login local (demo) sigue funcionando aunque falle.
+    });
   }, []);
 
   const logout = useCallback(() => setAccount(null), []);
