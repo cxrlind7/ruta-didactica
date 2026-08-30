@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRightIcon, DocIcon, EditIcon, ImageIcon, ListIcon, PlusIcon, TableIcon, TrashIcon, UploadIcon } from "@/components/icons";
@@ -63,6 +64,7 @@ export default function AdminPage() {
   const [grados, setGrados] = useState<GradoNode[] | null>(null);
   const [selectedGrado, setSelectedGrado] = useState(1);
   const [selectedTrimestre, setSelectedTrimestre] = useState<string | null>(null);
+  const [expandedTipo, setExpandedTipo] = useState<TipoKey | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -301,7 +303,7 @@ export default function AdminPage() {
             </div>
           )}
 
-          <div className="mt-4 grid gap-5 sm:grid-cols-2">
+          <div className="mt-4 space-y-3">
             {trimestreActivo?.tipos.map((t) => (
               <TipoCard
                 key={t.tipo}
@@ -309,6 +311,8 @@ export default function AdminPage() {
                 grado={selectedGrado}
                 trimestre={trimestreActivo.trimestre}
                 busyId={busyId}
+                expanded={expandedTipo === t.tipo}
+                onToggleExpanded={() => setExpandedTipo((k) => (k === t.tipo ? null : t.tipo))}
                 onUpload={handleUpload}
                 onDelete={handleDelete}
                 onEdit={handleEditArchivo}
@@ -356,6 +360,8 @@ function TipoCard({
   grado,
   trimestre,
   busyId,
+  expanded,
+  onToggleExpanded,
   onUpload,
   onDelete,
   onEdit,
@@ -365,6 +371,8 @@ function TipoCard({
   grado: number;
   trimestre: string;
   busyId: string | null;
+  expanded: boolean;
+  onToggleExpanded: () => void;
   onUpload: (id: string, file: File) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string, data: { label?: string; nombreArchivo?: string }) => Promise<ActionResult>;
@@ -376,22 +384,38 @@ function TipoCard({
   const [adding, setAdding] = useState(false);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
+  function handlePlusClick(e: MouseEvent) {
+    e.stopPropagation();
+    if (!expanded) onToggleExpanded();
+    setAdding((v) => !v);
+  }
+
   return (
-    <section className="rounded-rd-md border border-slate-200 bg-white overflow-hidden">
-      <header className="flex items-center gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rd-violet/10 text-rd-violet">
-          <Icon className="h-4 w-4" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-rd-navy">{meta.label}</p>
-          <p className="text-[11px] text-slate-400">{meta.hint}</p>
-        </div>
-        <span className="ml-auto shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-slate-500 ring-1 ring-slate-200">
-          {ingested}/{tipo.archivos.length}
-        </span>
+    <section className="w-full rounded-rd-md border border-slate-200 bg-white overflow-hidden">
+      <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3">
         <button
           type="button"
-          onClick={() => setAdding((v) => !v)}
+          onClick={onToggleExpanded}
+          aria-expanded={expanded}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <ChevronRightIcon
+            className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${expanded ? "rotate-90" : ""}`}
+          />
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rd-violet/10 text-rd-violet">
+            <Icon className="h-4 w-4" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-bold text-rd-navy">{meta.label}</span>
+            <span className="block text-[11px] text-slate-400">{meta.hint}</span>
+          </span>
+          <span className="ml-auto shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-slate-500 ring-1 ring-slate-200">
+            {ingested}/{tipo.archivos.length}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={handlePlusClick}
           title="Agregar archivo"
           aria-label="Agregar archivo"
           className={`shrink-0 rounded-full p-1.5 transition ${
@@ -400,36 +424,40 @@ function TipoCard({
         >
           <PlusIcon className="h-3.5 w-3.5" />
         </button>
-      </header>
+      </div>
 
-      {adding && (
-        <AgregarArchivoForm
-          tipo={tipo.tipo}
-          grado={grado}
-          trimestre={trimestre}
-          onCreate={onCreate}
-          onDone={() => setAdding(false)}
-        />
-      )}
-
-      {tipo.archivos.length === 0 ? (
-        <p className="px-4 py-6 text-center text-xs text-slate-400">Todavía no hay registros para este tipo.</p>
-      ) : (
-        <ul className="max-h-80 divide-y divide-slate-100 overflow-y-auto">
-          {tipo.archivos.map((a) => (
-            <ArchivoRow
-              key={a.key}
-              archivo={a}
+      {expanded && (
+        <>
+          {adding && (
+            <AgregarArchivoForm
               tipo={tipo.tipo}
-              busy={busyId === a.archivoDriveId}
-              expanded={expandedKey === a.key}
-              onToggle={() => setExpandedKey((k) => (k === a.key ? null : a.key))}
-              onUpload={(file) => onUpload(a.archivoDriveId, file)}
-              onDelete={() => onDelete(a.archivoDriveId)}
-              onEdit={(data) => onEdit(a.archivoDriveId, data)}
+              grado={grado}
+              trimestre={trimestre}
+              onCreate={onCreate}
+              onDone={() => setAdding(false)}
             />
-          ))}
-        </ul>
+          )}
+
+          {tipo.archivos.length === 0 ? (
+            <p className="px-4 py-6 text-center text-xs text-slate-400">Todavía no hay registros para este tipo.</p>
+          ) : (
+            <ul className="max-h-96 divide-y divide-slate-100 overflow-y-auto">
+              {tipo.archivos.map((a) => (
+                <ArchivoRow
+                  key={a.key}
+                  archivo={a}
+                  tipo={tipo.tipo}
+                  busy={busyId === a.archivoDriveId}
+                  expanded={expandedKey === a.key}
+                  onToggle={() => setExpandedKey((k) => (k === a.key ? null : a.key))}
+                  onUpload={(file) => onUpload(a.archivoDriveId, file)}
+                  onDelete={() => onDelete(a.archivoDriveId)}
+                  onEdit={(data) => onEdit(a.archivoDriveId, data)}
+                />
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </section>
   );
