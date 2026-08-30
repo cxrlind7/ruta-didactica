@@ -4,7 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { CardPayment, initMercadoPago } from "@mercadopago/sdk-react";
 import { formatMXN } from "@/lib/data";
 
-let mpInitialized = false;
+// Se inicializa al cargar el módulo (no dentro de un efecto): el Brick hijo
+// consulta la instancia de MercadoPago en su propio efecto interno, que en
+// React corre antes que cualquier useEffect del componente padre. Si
+// initMercadoPago se llamara ahí, el Brick arrancaría sin instancia todavía
+// y fallaba con "MercadoPago API error".
+if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_MP_PUBLIC_KEY) {
+  initMercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY, { locale: "es-MX" });
+}
 
 type Props = {
   itemIds: string[];
@@ -33,11 +40,6 @@ export default function RealPaymentCheckout({ itemIds, totalMXN, payerEmail, pay
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY;
-    if (publicKey && !mpInitialized) {
-      initMercadoPago(publicKey, { locale: "es-MX" });
-      mpInitialized = true;
-    }
     return () => {
       if (pollTimer.current) clearTimeout(pollTimer.current);
     };
