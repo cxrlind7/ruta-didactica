@@ -226,13 +226,18 @@ export default function AdminPage() {
           <h1 className="mt-1 text-2xl font-extrabold text-rd-navy">Archivos del catálogo</h1>
           <p className="mt-1 text-sm text-slate-500">Sube o retira materiales por grado, sin tocar código.</p>
         </div>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="text-sm font-semibold text-slate-500 hover:text-rd-navy"
-        >
-          Cerrar sesión ({account.email})
-        </button>
+        <div className="flex items-center gap-4">
+          <Link href="/admin/pagos" className="text-sm font-semibold text-rd-violet hover:underline">
+            Pagos →
+          </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="text-sm font-semibold text-slate-500 hover:text-rd-navy"
+          >
+            Cerrar sesión ({account.email})
+          </button>
+        </div>
         {overall && (
           <div className="flex items-center gap-4 rounded-rd-md border border-slate-200 bg-slate-50 px-5 py-3">
             <Ring pct={overall.pct} />
