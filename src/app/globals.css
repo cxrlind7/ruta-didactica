@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #1f2937;
+
+  /* Paleta canonica de marca - Ruta Didactica */
+  --rd-navy: #0e2f66;
+  --rd-turquoise: #00b7c3;
+  --rd-sky: #5db3f0;
+  --rd-violet: #6f3ccb;
+  --rd-white: #ffffff;
+  --rd-text: #1f2937;
+  --rd-editorial: #173b8f;
+
+  /* Paleta curricular (campos formativos NEM 2022) */
+  --cur-lenguajes: #2563eb;
+  --cur-ciencia: #14b8a6;
+  --cur-etica: #f05a5a;
+  --cur-humano: #8b5cf6;
+  --cur-valoracion: #0e2f66;
+
+  /* Colores funcionales */
+  --fn-header: #173b8f;
+  --fn-inicio: #00c4c9;
+  --fn-ruta: #8b72d9;
+  --fn-trayecto: #b8a8e8;
+  --fn-cierre: #0e2f66;
+
+  /* Radios */
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-brand);
+  --font-mono: var(--font-geist-mono);
+
+  --color-rd-navy: var(--rd-navy);
+  --color-rd-turquoise: var(--rd-turquoise);
+  --color-rd-sky: var(--rd-sky);
+  --color-rd-violet: var(--rd-violet);
+  --color-rd-white: var(--rd-white);
+  --color-rd-text: var(--rd-text);
+  --color-rd-editorial: var(--rd-editorial);
+
+  --color-cur-lenguajes: var(--cur-lenguajes);
+  --color-cur-ciencia: var(--cur-ciencia);
+  --color-cur-etica: var(--cur-etica);
+  --color-cur-humano: var(--cur-humano);
+  --color-cur-valoracion: var(--cur-valoracion);
+
+  --color-fn-header: var(--fn-header);
+  --color-fn-inicio: var(--fn-inicio);
+  --color-fn-ruta: var(--fn-ruta);
+  --color-fn-trayecto: var(--fn-trayecto);
+  --color-fn-cierre: var(--fn-cierre);
+
+  --radius-rd-sm: var(--radius-sm);
+  --radius-rd-md: var(--radius-md);
+  --radius-rd-lg: var(--radius-lg);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-brand);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes rd-blob-float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(24px, -32px) scale(1.06); }
+    66% { transform: translate(-18px, 18px) scale(0.96); }
+  }
+  .animate-rd-blob {
+    animation: rd-blob-float 16s ease-in-out infinite;
+  }
+  .animate-rd-blob-slow {
+    animation: rd-blob-float 22s ease-in-out infinite reverse;
+  }
+}

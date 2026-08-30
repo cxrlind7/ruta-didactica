@@ -1,0 +1,674 @@
+PROPUESTA DE IDENTIDAD VISUAL DIGITAL
+Lineamientos para el diseño de la página web y del ecosistema de venta
+Ruta Didáctica · Primaria · Ciclo 2026-2027
+“Cada aprendizaje tiene su camino”
+Documento de trabajo para diseñador/a UX/UI y desarrollo web · Versión 1.1 · Julio 2026
+00
+Carácter y uso de esta propuesta
+Traduce la identidad visual oficial a decisiones concretas de interfaz, navegación y experiencia digital.
+0.1 Finalidad
+Entregar a la persona responsable del diseño web un brief visual completo, con criterios suficientemente claros para construir pantallas, componentes y prototipos sin reinterpretar la marca ni improvisar estilos.
+R
+Regla de autoridad · Esta propuesta complementa, pero no sustituye, el Manual de Identidad Visual de Ruta Didáctica. Ante cualquier contradicción, prevalecen el manual y los archivos maestros oficiales.
+0.2 Qué está definido y qué permanece abierto
+Estado
+Incluye
+Fijo y obligatorio
+Logotipo oficial, eslogan, colores base, tipografía institucional, iconos aprobados, personalidad y regla de no reinterpretación.
+Propuesto para diseño
+Arquitectura de pantallas, jerarquía de componentes, recorridos, tamaños orientativos, comportamiento responsive y organización del catálogo.
+Por decidir con el equipo
+Tecnología, pasarela de pago, permisos de descarga, modelo de suscripción, reglas comerciales, analítica, SEO y administración.
+0.3 Fuente rectora para consulta
+Consultar el Manual de Identidad Visual: paleta (pp. 11-15), logo y eslogan (pp. 16-17), tipografía (pp. 18-19), iconografía (pp. 20-23), ilustración (pp. 24-25) y accesibilidad/formatos (pp. 28-29).
+Índice funcional
+La propuesta está organizada para que diseño, desarrollo y contenido trabajen con la misma referencia.
+Módulo
+Contenido
+Resultado esperado
+01
+Dirección estratégica y personalidad digital
+Una experiencia clara, profesional, amable y modular.
+02
+Sistema visual de interfaz y paletas por capas
+Tokens, paleta de marca, curricular y funcional, espacio, botones, tarjetas y estados.
+03
+Arquitectura de información
+Mapa del sitio, pantallas mínimas y recorridos de compra/descarga.
+04
+Página de inicio
+Anatomía, jerarquía, contenido y extensiones recomendadas.
+05
+Catálogo y filtros
+Cómo localizar materiales por grado, producto y periodo.
+06
+Catálogo de activos
+Uso de familias de producto, atributos, planes, grados y cobertura.
+07
+Responsive y accesibilidad
+Comportamiento en escritorio, tableta y móvil.
+08
+Entregables y aprobación
+Qué debe entregar la persona diseñadora y cómo validar el resultado.
+✓
+Resultado final esperado · Un sistema de diseño digital reconocible como Ruta Didáctica, escalable y listo para convertirse en prototipo navegable y posteriormente en producto web.
+01
+Dirección estratégica digital
+La página debe reducir fricción, ordenar la oferta y transmitir confianza profesional sin infantilizar.
+1.1 Objetivo del sitio
+Permitir que docentes de primaria comprendan rápidamente qué ofrece Ruta Didáctica, encuentren el material adecuado para su grado y periodo, comparen opciones, compren o accedan a sus recursos y regresen a descargarlos con facilidad.
+1.2 Audiencia prioritaria
+Docente que compra por necesidad inmediata
+Busca una quincena, ficha o planeación específica; requiere filtros rápidos, vista previa, claridad de precio y descarga sencilla.
+Docente que compara paquetes
+Necesita distinguir Ruta Base, Integral, Seguimiento y Visual, así como entender qué incluye cada modalidad.
+Docente recurrente
+Regresa a su biblioteca, consulta actualizaciones, descarga materiales y revisa el avance de su cobertura.
+Visitante que aún no conoce la marca
+Debe comprender la propuesta de valor en pocos segundos y percibir orden, calidad pedagógica y acompañamiento.
+1.3 Personalidad digital
+Rasgo
+Expresión en la interfaz
+Clara
+Jerarquías visibles, navegación directa, filtros comprensibles y textos breves.
+Práctica
+Acciones evidentes, descarga accesible y mínimo número de pasos.
+Amable
+Formas suaves, espacio generoso, iconografía cercana y microcopias confiables.
+Profesional
+Consistencia, precisión cromática, previews limpios y ausencia de adornos arbitrarios.
+Modular
+Tarjetas y componentes reutilizables que permiten crecer por grado, periodo y producto.
+02
+Sistema visual de interfaz
+Los códigos oficiales se convierten en capas cromáticas, tokens, componentes y reglas de convivencia digital.
+2.1 Distribución orientativa
+Capa
+Proporción
+Aplicación
+Neutros y fondos
+65-75%
+Blanco, fondos muy claros y áreas de respiración.
+Marca
+15-25%
+Azul noche, turquesa, azul cielo y violeta en estructura y llamadas.
+Acentos
+10-15%
+Estados, chips, atributos y color curricular cuando corresponda.
+70/20/10
+La página no se vuelve más reconocible por usar más color. La identidad aparece por la constancia: fondo claro, estructura azul noche, orientación turquesa, CTA violeta y espacio protegido.
+2.1.1 Capas visuales y dirección pedagógica
+La interfaz debe hacer visible la identidad sin confundir marca, función y currículo.
+Capa
+Regla
+Aplicación digital
+Marca
+Presenta y hace reconocible el ecosistema.
+Logo, portadas, encabezado, pie, comunicaciones y cierres.
+Función
+Organiza lectura, momentos y tipos de información.
+Navegación, estados, secuencia, filtros, feedback y seguimiento.
+Currículo
+Identifica campos formativos y Valoración de logros.
+Chips, categorías, fichas, mapas académicos y filtros por campo.
+REGLA
+El color no adorna: comunica. La forma organiza. La ruta conecta. La didáctica decide.
+2.1.2 Paleta cromática canónica de marca
+Los códigos son fuente de verdad: no se aproximan ni se sustituyen por colores parecidos.
+Color
+HEX
+Uso rector
+Azul noche
+#0E2F66
+Estructura, títulos, cierres, fondos elegantes, Valoración de logros y validación.
+Turquesa guía
+#00B7C3
+Navegación, pin, llamadas de atención, rutas y acentos de orientación.
+Azul cielo
+#5DB3F0
+Apoyos suaves, tarjetas, fondos claros y sensación de apertura.
+Violeta
+#6F3CCB
+Creatividad, identidad complementaria y CTA principal.
+Blanco
+#FFFFFF
+Fondo principal, respiración y contraste.
+Texto base
+#1F2937
+Cuerpo de texto y lectura prolongada.
+Azul editorial
+#173B8F
+Encabezados generales de tablas y profundidad académica.
+2.1.3 Paleta curricular y campos formativos
+La identidad curricular se comunica con cinco códigos exactos, incluido el coral oficial.
+Identificador
+HEX
+Uso curricular
+Aplicación web
+Lenguajes
+#2F6FD3
+Lectura, escritura, oralidad, comunicación y producción de significados.
+Etiqueta, chip, borde o encabezado de categoría.
+Saberes y Pensamiento Científico
+#0098A6
+Ciencia, matemáticas, indagación, datos y resolución de problemas.
+Filtro, tarjeta, estado seleccionado o acento de contenido.
+Ética, Naturaleza y Sociedades
+#F35A65
+Historia, geografía, ciudadanía, ambiente, derechos y comunidad.
+Coral visible en chips, tarjetas, categorías y muestras.
+De lo Humano y lo Comunitario
+#6F3CCB
+Identidad, bienestar, convivencia, cuerpo, participación y cuidado.
+Violeta en categorías, comparadores y estados relacionados.
+Valoración de logros
+#0E2F66
+Reflexión, evidencia, autoevaluación, retroalimentación y cierre.
+Azul noche con texto blanco en cierres, evidencias y dashboard.
+INTEGRIDAD
+Los iconos oficiales se insertan desde sus archivos maestros. Esta página representa color y función; no redibuja los identificadores.
+2.1.4 Colores funcionales y aplicación en componentes
+La función organiza momentos y estados; el currículo identifica el contenido.
+Momento
+Fondo
+Texto / criterio
+Encabezados generales
+#173B8F
+Texto blanco.
+Punto de partida / Inicio
+#00C4C9
+Texto azul noche.
+Ruta de proyecto
+#8B72D9
+Texto blanco.
+Trayecto PDA
+#B8A8E8
+Texto azul noche.
+Valoración de logros / Cierre
+#0E2F66
+Texto blanco.
+ACCESIBILIDAD
+No depender solo del color: toda función importante debe acompañarse con texto, etiqueta, icono, posición o forma.
+Tokens y reglas de interfaz
+Base para construir estilos globales en Figma y variables de diseño en desarrollo.
+--rd-navy: #0E2F66;       /* estructura, texto destacado */
+--rd-turquoise: #00B7C3;  /* orientación, foco, rutas */
+--rd-sky: #5DB3F0;        /* apoyos y fondos suaves */
+--rd-violet: #6F3CCB;     /* CTA principal y acentos */
+--rd-white: #FFFFFF;      /* fondo principal */
+--rd-text: #1F2937;       /* lectura prolongada */
+--rd-editorial: #173B8F;  /* encabezados y tablas */
+2.2 Espaciado, radios y profundidad
+Variable
+Propuesta
+Uso
+Escala de espacio
+4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96 px
+Márgenes, padding, separación entre componentes y ritmo vertical.
+Radio pequeño
+10-12 px
+Inputs, chips, pequeños contenedores.
+Radio medio
+16-20 px
+Botones, tarjetas de producto y filtros.
+Radio amplio
+24-32 px
+Bloques de beneficios, hero y secciones destacadas.
+Sombra
+Suave, fría y de baja opacidad
+Separar tarjetas del fondo sin recrear efectos agresivos.
+Borde
+1 px, gris azulado claro
+Estructura discreta en tarjetas, inputs y tablas.
+2.3 Estados interactivos
+Estado
+Criterio visual
+Reposo
+Color oficial, texto legible y jerarquía sin movimiento innecesario.
+Hover
+Cambio sutil de elevación, borde o tono derivado; no alterar la identidad del activo.
+Foco
+Anillo visible turquesa o azul cielo; nunca depender solo de una sombra tenue.
+Activo/seleccionado
+Fondo o borde claro y etiqueta textual inequívoca.
+Deshabilitado
+Menor contraste, sin perder legibilidad; explicar cuando la acción dependa de una condición.
+Tipografía y jerarquía web
+Aptos mantiene continuidad con los documentos; la implementación digital debe prever compatibilidad y sustitución controlada.
+Aa
+Familia oficial · Aptos para texto e interfaz; Aptos Display en títulos cuando esté disponible. El equipo técnico debe definir la carga legal del webfont o un fallback controlado: Aptos, Segoe UI, Arial, sans-serif.
+Nivel
+Tamaño orientativo escritorio
+Uso
+Display
+48-64 px
+Titular principal del hero; máximo dos líneas.
+H1
+36-44 px
+Título de página o categoría.
+H2
+28-34 px
+Secciones principales.
+H3
+20-24 px
+Tarjetas, bloques y subsecciones.
+Cuerpo
+16-18 px
+Lectura general y descripciones.
+Auxiliar
+13-15 px
+Etiquetas, metadatos y ayuda; conservar contraste.
+Reglas de composición
+Títulos breves, con máximo dos líneas y sin efectos decorativos.
+Párrafos cortos, alineación izquierda y ancho de lectura controlado.
+Negritas para conceptos y decisiones, no para bloques completos.
+Mayúsculas solo en etiquetas o códigos breves.
+La tipografía nunca compite con la iconografía 3D; ambas cumplen funciones distintas.
+Lenguaje gráfico digital
+La iconografía 3D aprobada aporta personalidad; debe funcionar como sistema y no como una colección de ilustraciones aisladas.
+Criterios de uso
+Sí
+Evitar
+Fondos blancos o muy claros, espacio alrededor y escala suficiente.
+Colocar los activos sobre fondos complejos o saturados.
+Un mismo lenguaje de volumen, brillo y sombra en toda la interfaz.
+Mezclar estos iconos con clipart, emoji o estilos flat sin criterio.
+Icono + etiqueta textual para categorías, planes y atributos.
+Usar iconos sin texto cuando el significado pueda ser ambiguo.
+Activos grandes en hero o categorías; discretos en listas y metadatos.
+Repetir el mismo activo varias veces como decoración.
+03
+Arquitectura de información
+La navegación debe corresponder a la forma real en que el docente busca, compara, compra y vuelve a consultar.
+3.1 Navegación principal propuesta
+Nivel
+Secciones
+Menú público
+Inicio · Planeaciones · Fichas · Diapositivas · Complementos · Biblioteca
+Acciones globales
+Buscar · Carrito · Iniciar sesión · Registrarme
+Catálogo
+Por grado · Por tipo de producto · Por cobertura temporal · Por paquete
+Cuenta
+Mi biblioteca · Mis compras · Descargas · Actualizaciones · Datos y soporte
+Compra
+Carrito · Checkout · Confirmación · Acceso al material
+3.2 Mapa mínimo del sitio
+Público
+Inicio; landing por producto; landing por grado; catálogo; detalle de material; planes; ayuda y preguntas frecuentes.
+Transaccional
+Carrito; checkout; confirmación; estados de pago; acceso posterior a la compra.
+Cuenta docente
+Registro, inicio de sesión, perfil, compras, biblioteca y descargas.
+Administración — fase posterior
+Gestión de productos, archivos, precios, pedidos, clientes, cupones y actualizaciones.
+MVP
+Prioridad sugerida · Diseñar primero las pantallas que permiten descubrir, evaluar, comprar y descargar. Las funciones administrativas pueden documentarse como fase 2.
+Inventario de pantallas del MVP
+La persona diseñadora debe cotizar y entregar el sistema completo, no únicamente la pantalla de inicio.
+Prioridad
+Pantalla
+Objetivo
+P1
+Inicio
+Comunicar valor, categorías y rutas de entrada.
+P1
+Catálogo general
+Explorar y filtrar materiales.
+P1
+Landing por grado
+Mostrar productos disponibles para 1.º a 6.º.
+P1
+Landing por familia
+Planeaciones, fichas, diapositivas y complementos.
+P1
+Detalle de producto
+Vista previa, contenido, precio, licencia y CTA.
+P1
+Carrito y checkout
+Completar compra con claridad y confianza.
+P1
+Registro / inicio de sesión
+Acceso simple y recuperación de cuenta.
+P1
+Mi biblioteca / descargas
+Entregar y organizar los recursos adquiridos.
+P2
+Planes y comparador
+Distinguir Ruta Base, Integral, Seguimiento y Visual.
+P2
+Ayuda / FAQ
+Resolver dudas de compra, descarga, uso y soporte.
+P2
+Búsqueda y resultados
+Localizar recursos por término, grado o periodo.
+P2
+Favoritos / lista
+Guardar materiales para consulta o compra posterior.
+04
+Página de inicio
+La propuesta actual funciona como dirección visual; el diseñador debe convertirla en una experiencia responsive y un sistema reutilizable.
+Referencia visual aportada: 1) navegación, 2) promesa principal, 3) ecosistema de productos, 4) grados, 5) cobertura, 6) beneficios y 7) pie.
+i
+La composición es una guía aprobada de dirección visual, no una obligación de conservar cada proporción o posición exacta. La jerarquía, los activos y la personalidad sí deben permanecer.
+Anatomía y función de la página de inicio
+Cada bloque debe responder una pregunta concreta del visitante y conducir a una acción.
+Zona
+Pregunta que resuelve
+Contenido y acción
+1. Encabezado
+¿Dónde estoy y qué puedo hacer?
+Logo, navegación, carrito, sesión y registro. Encabezado fijo o compacto al desplazarse.
+2. Hero
+¿Qué ofrece Ruta Didáctica?
+Eslogan, explicación breve y CTA primario “Explorar materiales”. CTA secundario “Ver cómo funciona”.
+3. Visual principal
+¿Qué incluye el ecosistema?
+Mockup de materiales, computadora y fichas; comunica producto digital e imprimible.
+4. Grados
+¿Hay material para mi grupo?
+Acceso directo a 1.º-6.º con el set oficial de grado.
+5. Cobertura
+¿Qué periodo puedo comprar?
+Quincena, mes, trimestre y ciclo completo.
+6. Beneficios
+¿Por qué confiar?
+Alineación, descarga, diseño docente y acompañamiento.
+7. Pie
+¿Cómo continúo o contacto?
+Marca, navegación secundaria, legales, ayuda y redes cuando existan.
+Extensiones recomendadas debajo del primer pliegue
+Cómo funciona
+Tres pasos: elige, revisa y descarga. Reduce incertidumbre para nuevos visitantes.
+Materiales destacados
+Selección por temporada, novedad o grado para evitar un catálogo vacío.
+Comparador de rutas
+Resumen visual de paquetes, incluidos y ahorro sin saturar el home.
+Confianza y soporte
+Preguntas frecuentes, política de actualización, contacto y testimonios reales cuando existan.
+Sistema de componentes reutilizables
+Todos los módulos deben vivir en una biblioteca de Figma con variantes y estados documentados.
+Componente
+Variantes mínimas
+Regla
+Botón
+Primario, secundario, texto, icono, loading, disabled
+CTA principal violeta; foco visible y texto accionable.
+Tarjeta de producto
+Compacta, estándar, destacada, adquirida
+Título, grado, periodo, atributos, precio/estado y acción.
+Selector de grado
+1.º a 6.º; activo/inactivo
+Usar el set oficial sin redibujar y acompañar con etiqueta accesible.
+Selector temporal
+Quincena, mes, trimestre, ciclo
+Mantener icono + texto; no depender solo de la imagen.
+Chip/atributo
+Actualizado, descargable, editable, recortables
+Pequeño, consistente y con texto; máximo los necesarios.
+Filtro
+Select, checkbox, rango, chips, limpiar
+Mostrar resultados y permitir restablecer sin perder contexto.
+Navegación
+Desktop, menú móvil, breadcrumbs, tabs
+Conservar ubicación y estado activo de forma clara.
+Feedback
+Toast, alerta, vacío, error, éxito, progreso
+Explicar qué ocurrió y cuál es el siguiente paso.
+Contenido mínimo de una tarjeta de producto
+Nombre corto y tipo de material.
+Grado y cobertura temporal.
+Vista previa o miniatura real del recurso.
+Atributos aplicables: editable, descargable, actualizado o con recortables.
+Precio, estado de compra o inclusión en paquete.
+Acción principal inequívoca: Ver detalle, Agregar, Comprar o Descargar.
+05
+Catálogo, filtros y recorrido
+La búsqueda debe iniciar con decisiones docentes reconocibles, no con categorías técnicas del sistema.
+5.1 Ruta principal de descubrimiento
+1 → 5
+Elegir grado → elegir tipo de material → elegir cobertura → revisar detalle → comprar o descargar.
+5.2 Orden recomendado de filtros
+Grado: primero a sexto.
+Familia: planeaciones, fichas, diapositivas, complementos o seguimiento.
+Cobertura: quincena, mes, trimestre o ciclo completo.
+Periodo concreto: quincena, mes o trimestre disponible.
+Atributos: editable, recortables, actualizado, descargable.
+Precio o modalidad cuando el catálogo lo requiera.
+5.3 Página de detalle
+Bloque
+Contenido obligatorio
+Cabecera
+Nombre, grado, cobertura, precio/estado y CTA.
+Vista previa
+Imágenes legibles, zoom o carrusel y aviso de muestra.
+Qué incluye
+Número y tipo de archivos, formato, periodo y componentes.
+Uso y compatibilidad
+Impresión, edición, descarga y requisitos.
+Licencia
+Alcance de uso docente y restricciones expresadas con claridad.
+Actualizaciones
+Fecha o condición de actualización cuando aplique.
+Relaciones
+Complementos, paquete superior o materiales del mismo periodo.
+06
+Catálogo de activos digitales
+Los archivos suministrados son activos de producción. Deben insertarse y optimizarse; nunca regenerarse ni reinterpretarse.
+!
+Integridad · Conservar forma, color, proporción, orientación y detalles. No agregar contornos, nuevas sombras, texto interno ni variantes improvisadas.
+6.1 Clasificación de activos
+Familia
+Función en el sitio
+Ubicaciones sugeridas
+Set 01 · Productos
+Identificar familias principales.
+Home, navegación visual, catálogo y dashboard.
+Set 02 · Atributos
+Explicar beneficios o características.
+Tarjetas, detalle, comparadores y filtros.
+Set 03 · Rutas
+Distinguir paquetes o modalidades.
+Planes, comparador, carrito y cuenta.
+Cobertura temporal
+Seleccionar alcance de compra o consulta.
+Home, catálogo, filtros y biblioteca.
+Grados
+Entrar al contenido por nivel escolar.
+Home, catálogo, menú visual y dashboard.
+Logo
+Firmar la experiencia y mantener reconocimiento.
+Encabezado, acceso, footer y comunicaciones.
+6.2 Regla de implementación
+Mantener el PNG maestro intacto y crear copias optimizadas para la web.
+Usar nombres controlados y evitar archivos duplicados con sufijos ambiguos.
+Documentar tamaño, fondo permitido y contexto de uso en Figma.
+Añadir texto alternativo descriptivo cuando el activo aporte información.
+No incrustar texto nuevo dentro de la imagen; las etiquetas deben permanecer como contenido HTML editable.
+Set 01 · Familias principales de producto
+Activos para reconocer rápidamente las líneas principales de Ruta Didáctica.
+Uso
+En tarjetas de categoría, conservar el icono como protagonista secundario, con etiqueta visible y área amplia de respiración.
+Set 02 · Atributos y beneficios
+Señales que ayudan a comparar materiales; nunca sustituyen la descripción escrita.
+Límite
+Mostrar únicamente los atributos que aplican al producto. Evitar una fila saturada de iconos repetidos.
+Set 03 · Rutas y modalidades
+Lenguaje para paquetes comerciales o combinaciones de materiales.
+Comparar
+El diseñador debe construir una tabla o tarjetas comparables donde el nombre, contenido y diferencia de cada ruta sean visibles sin depender del icono.
+Cobertura temporal
+Selector visual para el alcance de los materiales y para organizar la biblioteca del docente.
+Comportamiento recomendado
+Usar como tarjetas seleccionables con estados de reposo, hover, foco y selección.
+En móvil, mostrar en carrusel accesible o cuadrícula de dos columnas.
+La etiqueta textual siempre debe permanecer visible.
+Grados de primaria
+Identificador de entrada para primero a sexto; el pin turquesa refuerza la idea de ruta y destino.
+Reglas de uso
+Criterio
+Aplicación
+Integridad
+Usar cada número como activo oficial; no cambiar contorno, volumen ni pin.
+Escala
+Grande en la entrada por grado; más pequeño como chip o encabezado de categoría.
+Selección
+Agregar estado mediante contenedor, borde o texto; no recolorear el número.
+Accesibilidad
+Etiqueta “Primer grado”, “Segundo grado”, etc., además del número visible.
+07
+Responsive y accesibilidad
+La identidad debe conservarse en escritorio, tableta y móvil sin sacrificar lectura, interacción ni velocidad.
+Contexto
+Composición recomendada
+Escritorio
+Ancho de contenido controlado; hero de dos columnas; navegación completa; cuadrículas de 3-4 tarjetas.
+Tableta
+Hero apilado o 55/45; navegación simplificada; cuadrículas de 2-3 tarjetas; filtros en panel.
+Móvil
+Menú colapsado; hero vertical; CTA a ancho completo; cuadrícula de 1-2 tarjetas; filtros en hoja/modal.
+7.1 Reglas críticas
+No reducir el logo hasta perder legibilidad; utilizar una versión horizontal con espacio seguro.
+Mantener botones y controles suficientemente grandes para interacción táctil.
+Conservar la etiqueta textual debajo o junto a iconos y selectores.
+Evitar carruseles automáticos, movimientos decorativos y animaciones que distraigan.
+Optimizar imágenes sin sustituir los maestros; cargar tamaños adecuados a cada viewport.
+Asegurar navegación por teclado, foco visible, formularios con etiquetas y mensajes de error comprensibles.
+No comunicar estados exclusivamente mediante color.
+7.2 Rendimiento percibido
+Carga inicial
+Priorizar logo, texto y CTA; diferir ilustraciones secundarias y previews pesadas.
+Feedback
+Mostrar progreso de carga, compra y descarga; evitar pantallas sin respuesta.
+Imágenes
+Usar copias optimizadas con dimensiones declaradas para evitar saltos de diseño.
+Biblioteca
+Permitir reconocer rápidamente adquirido, actualizado y disponible para descargar.
+Voz, microcopy y confianza
+La página debe hablar con claridad profesional y cercanía, sin promesas ambiguas ni lenguaje excesivamente comercial.
+Contexto
+Tono
+Ejemplos
+CTA principal
+Directo y accionable
+Explorar materiales · Ver detalle · Comprar · Descargar
+Ayuda
+Breve y orientadora
+Elige tu grado para mostrar los materiales disponibles.
+Estado de compra
+Preciso
+Compra confirmada. El material ya está disponible en tu biblioteca.
+Error
+Responsable
+No pudimos completar la descarga. Intenta nuevamente o contacta soporte.
+Alineación
+Verificable
+Material independiente alineado a la NEM; no es un producto oficial de la SEP.
+Actualización
+Transparente
+Este material incluye las actualizaciones indicadas en su ficha.
+Evitar
+Mayúsculas sostenidas, signos excesivos o mensajes infantiles.
+Promesas como “garantiza el aprendizaje” o afirmaciones no verificables.
+Botones genéricos como “Más” cuando puede nombrarse la acción real.
+Mensajes de error técnicos sin explicación para el usuario.
+08
+Entregables, handoff y aprobación
+La contratación debe concluir con un sistema editable, documentado y preparado para desarrollo.
+8.1 Entregables mínimos del diseñador/a
+Entregable
+Contenido
+Archivo maestro de diseño
+Figma organizado por páginas, flujos y componentes; capas con nombres claros.
+Sistema de diseño
+Colores, tipografía, espaciado, radios, sombras, iconos y reglas de uso.
+Biblioteca de componentes
+Botones, inputs, tarjetas, filtros, navegación, feedback y estados responsive.
+Pantallas de alta fidelidad
+MVP completo en escritorio, tableta y móvil.
+Prototipo navegable
+Recorridos de exploración, compra, acceso y descarga.
+Handoff
+Medidas, tokens, comportamiento, assets exportables y notas para desarrollo.
+Documentación
+Decisiones, excepciones, componentes pendientes y control de versiones.
+8.2 Archivos a entregar
+Enlace y copia exportable del archivo de Figma.
+Carpeta de activos optimizados, conservando relación con los archivos maestros.
+PDF de presentación del sistema para revisión ejecutiva.
+Inventario de pantallas y componentes con estado de aprobación.
+Guía breve de implementación para desarrollo.
+Decisiones que deben resolverse antes del desarrollo
+Estas definiciones afectan arquitectura, costos y diseño; conviene responderlas durante el prototipo.
+Tema
+Decisión pendiente
+Modelo comercial
+Compra individual, paquetes, suscripción o combinación.
+Precios
+Cómo se muestran descuentos, periodos, paquetes y renovaciones.
+Cuenta
+Datos requeridos, recuperación, roles y acceso institucional.
+Descargas
+Límite, vigencia, versiones, actualización y re-descarga.
+Licencia
+Uso individual, escuela, número de grupos y restricciones.
+Pago
+Métodos, impuestos, facturación, moneda y comprobantes.
+Soporte
+Canales, horarios, tiempos de respuesta y centro de ayuda.
+Contenido
+Quién carga, revisa, publica y retira productos.
+Privacidad
+Avisos, consentimiento, datos de cuenta y analítica.
+Administración
+Necesidades del panel interno y reportes.
+Clave
+No diseñar pantallas definitivas de checkout, cuenta o biblioteca sin resolver estas reglas. El prototipo puede incluir supuestos, pero deben quedar etiquetados como tales.
+Puerta de aprobación visual y funcional
+Checklist para revisar el prototipo antes de autorizar desarrollo.
+✓
+Criterio
+Pregunta de validación
+☐
+Marca
+Se utilizó el logotipo oficial sin alterar proporción, color ni composición.
+☐
+Eslogan
+Aparece únicamente “Cada aprendizaje tiene su camino”.
+☐
+Paleta
+Los códigos de marca, curriculares y funcionales son exactos; el coral, turquesa y violeta conservan su función.
+☐
+Tipografía
+Aptos y la jerarquía se aplican de forma consistente.
+☐
+Iconos
+Los activos se insertaron sin regenerar y siempre tienen contexto textual.
+☐
+Saturación
+La interfaz mantiene fondo claro, aire y prioridades visibles.
+☐
+Navegación
+El usuario puede encontrar materiales por grado, producto y periodo.
+☐
+Detalle
+Cada producto explica qué incluye, formato, precio, licencia y acción.
+☐
+Responsive
+Las pantallas se resolvieron en escritorio, tableta y móvil.
+☐
+Accesibilidad
+La función se comprende sin depender solo del color y el foco es visible.
+☐
+Estados
+Carga, error, vacío, compra y descarga tienen feedback claro.
+☐
+Handoff
+Componentes, tokens, medidas y activos están documentados.
+✓
+Aprobación · El producto final debe reconocerse como Ruta Didáctica, orientar la decisión del docente, facilitar la compra y preservar la integridad de todos los activos oficiales.
+IDENTIDAD QUE ORIENTA
+Diseño que comunica · estructura que acompaña
+RD
+La identidad digital reduce fricción, organiza la experiencia y deja que el valor pedagógico ocupe el centro.
+“Cada aprendizaje tiene su camino”
