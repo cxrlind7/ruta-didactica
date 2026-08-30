@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { setSession } from "@/lib/session";
 import { createMpOrder } from "@/lib/mercadoPagoOrder";
+import { getModoPago } from "@/lib/modoPago";
 import { RouteKey } from "@/lib/data";
 
 type CheckoutBody = {
@@ -138,15 +139,9 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Las tarjetas oficiales de prueba de Mercado Pago solo funcionan con
-  // credenciales de producción (APP_USR-) sin activar -- probado en esta
-  // sesión: con credenciales TEST- reales, el SDK las rechaza de plano
-  // ("Test credentials are not supported..."). Por eso el checkout con
-  // tarjeta usa producción tanto en modo de pruebas del sitio como en
-  // producción real; las credenciales TEST- quedan sin usar hasta que se
-  // implemente un flujo con test users de Mercado Pago.
+  const mode = await getModoPago();
   const result = await createMpOrder({
-    mode: "produccion",
+    mode,
     orderId: order.id,
     totalMXN: priceMXN,
     description,

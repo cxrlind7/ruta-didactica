@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   });
 
   const result = await createMpOrder({
-    mode: "produccion",
+    mode: "prueba",
     orderId: order.id,
     totalMXN,
     description: itemIds.map((id) => TEST_DOWNLOADS[id].title).join(", "),

@@ -1,21 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { InvalidWebhookSignatureError, WebhookSignatureValidator } from "mercadopago";
 import { prisma } from "@/lib/prisma";
-import { orderClient, paymentClient } from "@/lib/mercadopago";
+import { orderClient, paymentClient, webhookSecretFor } from "@/lib/mercadopago";
 import { approveOrder, rejectOrder } from "@/lib/grantEntitlements";
 import type { ModoPago } from "@/lib/modoPago";
 
 export async function POST(req: NextRequest) {
-  const secret = process.env.MP_WEBHOOK_SECRET;
-  if (!secret) {
-    console.error("Falta MP_WEBHOOK_SECRET");
-    return NextResponse.json({ error: "server misconfigured" }, { status: 500 });
-  }
-
   const body = await req.json().catch(() => null);
   const dataId = req.nextUrl.searchParams.get("data.id") ?? body?.data?.id ?? null;
   const xRequestId = req.headers.get("x-request-id");
   const xSignature = req.headers.get("x-signature");
+
+  // Checkout Pro (link de pago por pedido, ver mercadoPagoPreference.ts)
+  // notifica con type "payment" y trae nuestro orderId en external_reference
+  // -- distinto del checkout dinámico con tarjeta (API de Orders), que
+  // notifica con type "order" y se resuelve más abajo con orderClient().
+  const topic = body?.type ?? req.nextUrl.searchParams.get("type") ?? "order";
+
+  // "Prueba" y "producción" son aplicaciones de Mercado Pago separadas (ver
+  // mercadopago.ts), cada una con su propio webhook secret -- hay que saber
+  // cuál aplicó ANTES de validar la firma. Mercado Pago manda `live_mode`
+  // en cada notificación para distinguirlas.
+  const mode: ModoPago = body?.live_mode === false ? "prueba" : "produccion";
+
+  const secret = webhookSecretFor(mode);
+  if (!secret) {
+    console.error(`Falta el webhook secret de modo ${mode}`);
+    return NextResponse.json({ error: "server misconfigured" }, { status: 500 });
+  }
 
   try {
     WebhookSignatureValidator.validate({ xSignature, xRequestId, dataId, secret });
@@ -47,18 +59,6 @@ export async function POST(req: NextRequest) {
   if (!dataId) {
     return NextResponse.json({ error: "sin data.id" }, { status: 400 });
   }
-
-  // Checkout Pro (link de pago por pedido, ver mercadoPagoPreference.ts)
-  // notifica con type "payment" y trae nuestro orderId en external_reference
-  // -- distinto del checkout dinámico con tarjeta (API de Orders), que
-  // notifica con type "order" y se resuelve más abajo con orderClient().
-  const topic = body?.type ?? req.nextUrl.searchParams.get("type") ?? "order";
-
-  // Credenciales de prueba y de producción son entornos separados en
-  // Mercado Pago: un recurso creado con TEST- solo se puede volver a
-  // consultar con TEST-, nunca con el token de producción y viceversa.
-  // Mercado Pago manda `live_mode` en cada notificación para distinguirlos.
-  const mode: ModoPago = body?.live_mode === false ? "prueba" : "produccion";
 
   if (topic === "payment") {
     try {
