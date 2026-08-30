@@ -32,21 +32,6 @@ export type CreateMpOrderResult =
   | { ok: true; mpOrderId: string; status: string }
   | { ok: false; mpOrderId: string | null; error: string };
 
-// La API de Orders solo acepta 'amex' | 'master' | 'visa' en
-// transactions.payments[0].payment_method.id, pero el Brick de tarjeta
-// (CardPayment) puede devolver variantes más específicas para tarjetas
-// reales (ej. débito/prepago identificadas como "debmaster" en vez de
-// "master") -- las tarjetas oficiales de prueba siempre devuelven el id
-// base, por eso esto no se había visto hasta probar con una tarjeta real.
-// Se normaliza a la red base antes de mandarlo, en vez de rechazar el pago.
-function normalizePaymentMethodId(id: string): string {
-  const lower = id.toLowerCase();
-  if (lower.includes("amex")) return "amex";
-  if (lower.includes("master")) return "master";
-  if (lower.includes("visa")) return "visa";
-  return id;
-}
-
 export async function createMpOrder(input: CreateMpOrderInput): Promise<CreateMpOrderResult> {
   const mpRes = await fetch("https://api.mercadopago.com/v1/orders", {
     method: "POST",
@@ -79,7 +64,7 @@ export async function createMpOrder(input: CreateMpOrderInput): Promise<CreateMp
           {
             amount: input.totalMXN.toFixed(2),
             payment_method: {
-              id: normalizePaymentMethodId(input.paymentMethodId),
+              id: input.paymentMethodId,
               type: input.paymentType,
               token: input.token,
               installments: input.installments,
