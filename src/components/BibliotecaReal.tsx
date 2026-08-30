@@ -62,6 +62,15 @@ export default function BibliotecaReal() {
 
   return (
     <div className="mb-10 space-y-6">
+      <div className="flex justify-end">
+        <a
+          href="/api/biblioteca/descargar-todo"
+          download="Mi biblioteca - Ruta Didactica.zip"
+          className="inline-flex items-center gap-2 rounded-rd-md border border-rd-violet px-4 py-2 text-xs font-bold text-rd-violet hover:bg-rd-violet/10"
+        >
+          Descargar todo (.zip)
+        </a>
+      </div>
       {grados.map((g) => {
         const activeTrimestre = selectedTrimestre[g.grado] ?? g.trimestres[0]?.trimestre;
         const trimestreNode = g.trimestres.find((t) => t.trimestre === activeTrimestre);
@@ -141,14 +150,13 @@ export default function BibliotecaReal() {
                                 Ver
                               </button>
                             )}
-                            {!viewablePdf && (
-                              <a
-                                href={`/api/archivos/${a.archivoDriveId}/descargar`}
-                                className="rounded-rd-sm border border-rd-violet px-2 py-1 font-semibold text-rd-violet hover:bg-rd-violet/10"
-                              >
-                                Descargar
-                              </a>
-                            )}
+                            <a
+                              href={`/api/archivos/${a.archivoDriveId}/descargar`}
+                              download={a.nombreArchivo}
+                              className="rounded-rd-sm border border-rd-violet px-2 py-1 font-semibold text-rd-violet hover:bg-rd-violet/10"
+                            >
+                              Descargar
+                            </a>
                           </span>
                         </li>
                         );
