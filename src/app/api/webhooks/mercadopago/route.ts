@@ -11,10 +11,20 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  const dataId = req.nextUrl.searchParams.get("data.id") ?? body?.data?.id ?? null;
+  const queryDataId = req.nextUrl.searchParams.get("data.id");
+  const dataId = queryDataId ?? body?.data?.id ?? null;
   const xRequestId = req.headers.get("x-request-id");
   const xSignature = req.headers.get("x-signature");
-  console.log("Webhook MP recibido:", { dataId, xRequestId, xSignature, action: body?.action });
+  console.log("Webhook MP recibido:", {
+    url: req.url,
+    search: req.nextUrl.search,
+    queryDataId,
+    bodyDataId: body?.data?.id,
+    dataId,
+    xRequestId,
+    xSignature,
+    action: body?.action,
+  });
 
   try {
     WebhookSignatureValidator.validate({
