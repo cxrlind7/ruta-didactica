@@ -35,6 +35,17 @@ function coberturaColumn(cobertura: Cobertura) {
   return "compraCiclo" as const;
 }
 
+// req.nextUrl.origin refleja la dirección interna del contenedor detrás del
+// proxy de Railway (ej. http://localhost:8080), no el dominio público -- eso
+// mandaba a Mercado Pago un back_urls.success inalcanzable y dejaba al
+// comprador varado tras pagar, aunque el pago sí se aprobara. Los headers
+// x-forwarded-* sí traen el host/proto públicos reales.
+function publicOrigin(req: NextRequest): string {
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  return host ? `${proto}://${host}` : req.nextUrl.origin;
+}
+
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as LinkCheckoutBody | null;
   if (!body) return NextResponse.json({ error: "Body inválido" }, { status: 400 });
@@ -88,7 +99,7 @@ export async function POST(req: NextRequest) {
   const title = `Ruta ${RUTA_LABEL[rutaCodigo] ?? rutaCodigo} · Grado ${grado} · ${
     COBERTURA_LABEL[cobertura] ?? cobertura
   } (${periodoComprado})`;
-  const origin = req.nextUrl.origin;
+  const origin = publicOrigin(req);
 
   // Misma protección de doble cobro que /api/checkout: si ya hay un pedido
   // pendiente igual, se reutiliza (generando una preferencia nueva, ya que
