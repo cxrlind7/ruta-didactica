@@ -1,10 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
-import { formatMXN, gradeIcon, gradeLabel, grades, routes } from "@/lib/data";
+import { formatMXN, gradeIcon, gradeLabel, grades, routes, RouteKey, RUTA_CODE } from "@/lib/data";
 import { ArrowRightIcon } from "@/components/icons";
 import Reveal from "@/components/Reveal";
+import { prisma } from "@/lib/prisma";
 
-const routeKeys = Object.keys(routes) as (keyof typeof routes)[];
+// Los precios salen de PaymentProduct (editable desde el panel admin) -- no
+// se puede prerenderizar en build time o quedarían congelados.
+export const dynamic = "force-dynamic";
+
+const routeKeys = Object.keys(routes) as RouteKey[];
 
 const benefits = [
   {
@@ -42,7 +47,11 @@ const stats = [
   { value: "2026-2027", label: "ciclo escolar" },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const productos = await prisma.paymentProduct.findMany({ where: { active: true, cobertura: "quincena" } });
+  const precioQuincenaDe = (route: RouteKey) =>
+    productos.find((p) => p.ruta === RUTA_CODE[route])?.precioMXN ?? routes[route].priceMXN;
+
   return (
     <>
       {/* Hero */}
@@ -93,7 +102,7 @@ export default function Home() {
           </Reveal>
           <Reveal delay={0.32}>
             <p className="mt-4 text-sm font-semibold text-rd-violet">
-              Comienza con una quincena desde {formatMXN(routes.base.priceMXN)}.
+              Comienza con una quincena desde {formatMXN(precioQuincenaDe("base"))}.
             </p>
           </Reveal>
         </div>
@@ -158,7 +167,7 @@ export default function Home() {
                     ))}
                   </ul>
                   <p className="mt-5 text-center text-3xl font-extrabold text-rd-navy">
-                    {formatMXN(routes[key].priceMXN)}
+                    {formatMXN(precioQuincenaDe(key))}
                   </p>
                   <p className="text-center text-[11px] text-slate-400">desde quincena · por grado</p>
                   <span className="mt-4 inline-flex items-center justify-center gap-1 rounded-rd-md bg-rd-violet px-4 py-2.5 text-sm font-semibold text-white transition-colors group-hover:bg-rd-navy">
