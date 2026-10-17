@@ -5,9 +5,8 @@ import { CardPayment, initMercadoPago } from "@mercadopago/sdk-react";
 import { formatMXN } from "@/lib/data";
 import LoginLink from "@/components/LoginLink";
 
-// Igual que RealPaymentCheckout.tsx (los 3 productos de prueba) pero
-// apuntando a /api/checkout -- el catálogo real (grado+ruta+cobertura+
-// periodo). Se usa tanto en modo de pruebas como en producción (si se
+// Pago con tarjeta (Brick de Mercado Pago) contra /api/checkout -- el
+// catálogo real (grado+ruta+cobertura+periodo). Se usa tanto en modo de pruebas como en producción (si se
 // permite tarjeta), así que la public key no puede ser un env var NEXT_PUBLIC
 // fijo en build time -- llega como prop (ver /api/settings) según el modo
 // vigente, y solo se inicializa el SDK de Mercado Pago una vez que se sabe

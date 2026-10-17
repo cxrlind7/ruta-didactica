@@ -36,9 +36,9 @@ model OrderItem {
   itemId   String
   priceMXN Int
 
-  // Presentes solo para compras del catálogo real (via /api/checkout); los 3
-  // productos de prueba (via /api/orders) los dejan null y siguen usando
-  // solo itemId, como hasta ahora.
+  // Presentes en todas las compras del catálogo real (/api/checkout y
+  // /api/checkout/link). Solo quedan en null los pedidos viejos de los 3
+  // productos de prueba de la demo inicial (ya eliminada), que usaban itemId.
   grado           Int?
   ruta            String? // BASE | VISUAL | SEGUIMIENTO | INTEGRAL
   cobertura       String? // quincena | mes | trimestre | ciclo

@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { addGuestOrder, getSessionUser } from "@/lib/session";
 import { entitlementIncludes, type Compra } from "@/lib/motorReglas";
 
-// Compartido entre las rutas que crean pedidos (/api/checkout,
-// /api/checkout/link, /api/orders). Antes cada una hacía upsert del correo y
+// Compartido entre las rutas que crean pedidos (/api/checkout y
+// /api/checkout/link). Antes cada una hacía upsert del correo y
 // abría una sesión completa para quien fuera -- sin contraseña, así que
 // cualquiera podía escribir el correo de otra persona y entrar a su
 // biblioteca. Ahora:
