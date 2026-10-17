@@ -9,7 +9,7 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { CoverageKey, RouteKey, formatMXN, routes } from "./data";
+import { CoverageKey, RouteKey, RUTA_CODE, formatMXN, routes } from "./data";
 
 export type CartItem = {
   id: string;
@@ -115,6 +115,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setLastOrder(readLS(LS_LAST_ORDER, null));
     setHydrated(true);
   }, []);
+
+  // El precio se guarda en el carrito al agregar, pero el admin lo puede
+  // cambiar después (PaymentProduct) -- el servidor siempre cobra el vigente,
+  // así que al cargar se actualiza para que carrito y checkout muestren lo
+  // mismo que se va a cobrar.
+  useEffect(() => {
+    if (!hydrated) return;
+    fetch("/api/payment-products")
+      .then((r) => r.json())
+      .then((d: { productos: { cobertura: string; ruta: string; precioMXN: number }[] }) => {
+        const precioDe = new Map(d.productos.map((p) => [`${p.cobertura}|${p.ruta}`, p.precioMXN]));
+        setCart((prev) => {
+          let changed = false;
+          const next = prev.map((item) => {
+            const precio = precioDe.get(`${item.coverage}|${RUTA_CODE[item.route]}`);
+            if (precio == null || precio === item.priceMXN) return item;
+            changed = true;
+            return { ...item, priceMXN: precio };
+          });
+          return changed ? next : prev;
+        });
+      })
+      .catch(() => {});
+  }, [hydrated]);
 
   useEffect(() => {
     if (hydrated) window.localStorage.setItem(LS_CART, JSON.stringify(cart));
