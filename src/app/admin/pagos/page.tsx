@@ -17,10 +17,15 @@ type Producto = {
   active: boolean;
 };
 
+type Clase = {
+  id: string;
+  titulo: string;
+  precioMXN: number;
+  activa: boolean;
+};
+
 type PedidoItem = {
-  grado: number | null;
-  ruta: string | null;
-  cobertura: string | null;
+  label: string;
   periodoComprado: string | null;
   paymentCode: string | null;
   priceMXN: number;
@@ -56,6 +61,7 @@ export default function AdminPagosPage() {
   const [permitirTarjeta, setPermitirTarjeta] = useState<boolean | null>(null);
   const [confirmingModo, setConfirmingModo] = useState<string | null>(null);
   const [productos, setProductos] = useState<Producto[] | null>(null);
+  const [clases, setClases] = useState<Clase[] | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -72,6 +78,10 @@ export default function AdminPagosPage() {
       .then((res) => res.json())
       .then((d: { productos: Producto[] }) => setProductos(d.productos))
       .catch(() => setError("No se pudieron cargar los enlaces de pago."));
+    fetch("/api/admin/clases")
+      .then((res) => res.json())
+      .then((d: { clases: Clase[] }) => setClases(d.clases))
+      .catch(() => setError("No se pudieron cargar las clases."));
     fetch("/api/admin/pedidos")
       .then((res) => res.json())
       .then((d: { pedidos: Pedido[] }) => setPedidos(d.pedidos))
@@ -163,6 +173,27 @@ export default function AdminPagosPage() {
     }
   }
 
+  async function saveClase(id: string, data: { precioMXN?: number; activa?: boolean; titulo?: string }) {
+    setBusy(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/clases/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error);
+      }
+      loadAll();
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : "No se pudo guardar la clase.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function confirmarPedido(id: string) {
     setBusy(id);
     setError(null);
@@ -228,7 +259,7 @@ export default function AdminPagosPage() {
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-rd-violet">Panel de administración</p>
           <h1 className="mt-1 text-2xl font-extrabold text-rd-navy">Pagos</h1>
-          <p className="mt-1 text-sm text-slate-500">Modo de cobro, precios/enlaces y confirmación de pedidos.</p>
+          <p className="mt-1 text-sm text-slate-500">Modo de cobro, precios de rutas y clases, y confirmación de pedidos.</p>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/admin" className="text-sm font-semibold text-rd-violet hover:underline">
@@ -364,6 +395,30 @@ export default function AdminPagosPage() {
         )}
       </section>
 
+      {/* Clases sueltas */}
+      <section className="mt-6 rounded-rd-md border border-slate-200 bg-white overflow-hidden">
+        <div className="border-b border-slate-100 bg-slate-50 px-5 py-3">
+          <h2 className="text-sm font-bold text-rd-navy">
+            Clases sueltas{clases ? ` (${clases.length})` : ""}
+          </h2>
+          <p className="text-xs text-slate-500">
+            Se venden una por una en /clases. Desactivar una clase la oculta del catálogo; quien ya la compró la
+            sigue viendo en su biblioteca.
+          </p>
+        </div>
+        {clases === null ? (
+          <p className="px-5 py-6 text-xs text-slate-400">Cargando…</p>
+        ) : clases.length === 0 ? (
+          <p className="px-5 py-6 text-center text-xs text-slate-400">Todavía no hay clases cargadas.</p>
+        ) : (
+          <ul className="max-h-[32rem] divide-y divide-slate-100 overflow-y-auto">
+            {clases.map((c) => (
+              <ClaseRow key={c.id} clase={c} busy={busy === c.id} onSave={(data) => saveClase(c.id, data)} />
+            ))}
+          </ul>
+        )}
+      </section>
+
       {/* Pedidos */}
       <section className="mt-6 rounded-rd-md border border-slate-200 bg-white overflow-hidden">
         <div className="border-b border-slate-100 bg-slate-50 px-5 py-3">
@@ -486,6 +541,99 @@ function ProductoRow({
   );
 }
 
+function ClaseRow({
+  clase,
+  busy,
+  onSave,
+}: {
+  clase: Clase;
+  busy: boolean;
+  onSave: (data: { precioMXN?: number; activa?: boolean; titulo?: string }) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [precio, setPrecio] = useState(String(clase.precioMXN));
+  const [titulo, setTitulo] = useState(clase.titulo);
+
+  function startEditing() {
+    setPrecio(String(clase.precioMXN));
+    setTitulo(clase.titulo);
+    setEditing(true);
+  }
+
+  function save() {
+    const precioNum = Number(precio);
+    onSave({ precioMXN: Number.isFinite(precioNum) ? precioNum : undefined, titulo });
+    setEditing(false);
+  }
+
+  return (
+    <li className="px-5 py-3 text-xs">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className={`min-w-0 flex-1 font-medium ${clase.activa ? "text-rd-navy" : "text-slate-400 line-through"}`}>
+          {clase.titulo}
+        </span>
+        {!editing && <span className="font-bold text-rd-navy">{formatMXN(clase.precioMXN)}</span>}
+        <span className="flex shrink-0 items-center gap-2">
+          <label className="flex items-center gap-1.5 text-slate-500">
+            <input
+              type="checkbox"
+              checked={clase.activa}
+              disabled={busy}
+              onChange={(e) => onSave({ activa: e.target.checked })}
+              className="h-3.5 w-3.5 accent-rd-violet"
+            />
+            Activa
+          </label>
+          {!editing && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={startEditing}
+              className="flex items-center gap-1 rounded-rd-sm border border-slate-200 px-2 py-1 font-semibold text-rd-navy hover:border-rd-sky"
+            >
+              <EditIcon className="h-3 w-3" />
+              Editar
+            </button>
+          )}
+        </span>
+      </div>
+
+      {editing && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <input
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            aria-label="Título"
+            className="min-w-0 flex-1 rounded-rd-sm border border-slate-200 px-2 py-1 text-xs focus:border-rd-violet focus:outline-none"
+          />
+          <input
+            type="number"
+            value={precio}
+            onChange={(e) => setPrecio(e.target.value)}
+            aria-label="Precio en MXN"
+            className="w-24 rounded-rd-sm border border-slate-200 px-2 py-1 text-xs focus:border-rd-violet focus:outline-none"
+          />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={save}
+            className="rounded-rd-sm bg-rd-violet px-3 py-1 font-semibold text-white hover:bg-rd-navy disabled:opacity-40"
+          >
+            Guardar
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="rounded-rd-sm px-3 py-1 font-semibold text-slate-500 hover:text-rd-navy"
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
+    </li>
+  );
+}
+
 function PedidoRow({
   pedido,
   busy,
@@ -510,8 +658,8 @@ function PedidoRow({
       <div className="min-w-0 flex-1 text-slate-500">
         {item ? (
           <p>
-            {item.grado}º grado · {RUTA_LABEL[item.ruta ?? ""] ?? item.ruta} · {COBERTURA_LABEL[item.cobertura ?? ""] ?? item.cobertura}{" "}
-            <span className="text-slate-400">({item.periodoComprado})</span>
+            {item.label}
+            {item.periodoComprado && <span className="text-slate-400"> ({item.periodoComprado})</span>}
           </p>
         ) : (
           <p className="text-slate-400">Sin detalle</p>

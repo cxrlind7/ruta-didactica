@@ -10,6 +10,7 @@ import { useStore } from "@/lib/store";
 const navLinks = [
   { href: "/", label: "Inicio" },
   { href: "/planes", label: "Rutas" },
+  { href: "/clases", label: "Clases" },
   { href: "/biblioteca", label: "Biblioteca" },
 ];
 

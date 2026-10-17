@@ -5,8 +5,8 @@ import { CardPayment, initMercadoPago } from "@mercadopago/sdk-react";
 import { formatMXN } from "@/lib/data";
 import LoginLink from "@/components/LoginLink";
 
-// Pago con tarjeta (Brick de Mercado Pago) contra /api/checkout -- el
-// catálogo real (grado+ruta+cobertura+periodo). Se usa tanto en modo de pruebas como en producción (si se
+// Pago con tarjeta (Brick de Mercado Pago) contra /api/checkout -- una ruta
+// (grado+ruta+cobertura+periodo) o una clase suelta. Se usa tanto en modo de pruebas como en producción (si se
 // permite tarjeta), así que la public key no puede ser un env var NEXT_PUBLIC
 // fijo en build time -- llega como prop (ver /api/settings) según el modo
 // vigente, y solo se inicializa el SDK de Mercado Pago una vez que se sabe
@@ -14,10 +14,8 @@ import LoginLink from "@/components/LoginLink";
 let initializedPublicKey: string | null = null;
 
 type Props = {
-  grado: number;
-  ruta: string;
-  cobertura: string;
-  periodoComprado: string;
+  // Lo que se compra, tal como lo espera /api/checkout (ver compraBody()).
+  compra: Record<string, unknown>;
   totalMXN: number;
   payerEmail: string;
   payerName: string;
@@ -48,10 +46,7 @@ const POLL_INTERVAL_MS = 1500;
 const MAX_POLLS = 10;
 
 export default function RealCatalogCardCheckout({
-  grado,
-  ruta,
-  cobertura,
-  periodoComprado,
+  compra,
   totalMXN,
   payerEmail,
   payerName,
@@ -111,10 +106,7 @@ export default function RealCatalogCardCheckout({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        grado,
-        ruta,
-        cobertura,
-        periodoComprado,
+        ...compra,
         payerEmail,
         payerName,
         formData: {

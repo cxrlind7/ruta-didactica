@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WHATSAPP_NUMERO, WHATSAPP_URL } from "@/lib/contacto";
 
 const faqs = [
   {
@@ -82,12 +83,12 @@ export default function AyudaPage() {
           horas hábiles.
         </p>
         <Link
-          href="https://wa.me/526185175068"
+          href={WHATSAPP_URL}
           target="_blank"
           rel="noreferrer"
           className="inline-flex rounded-rd-md bg-rd-violet px-5 py-2.5 text-sm font-semibold text-white hover:bg-rd-navy transition"
         >
-          WhatsApp: 618 517 5068
+          WhatsApp: {WHATSAPP_NUMERO}
         </Link>
       </section>
     </div>

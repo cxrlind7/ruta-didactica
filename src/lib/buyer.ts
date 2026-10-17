@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import type { Publicacion, User } from "@prisma/client";
+import type { User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { addGuestOrder, getSessionUser } from "@/lib/session";
-import { entitlementIncludes, type Compra } from "@/lib/motorReglas";
 
 // Compartido entre las rutas que crean pedidos (/api/checkout y
 // /api/checkout/link). Antes cada una hacía upsert del correo y
@@ -43,29 +42,4 @@ export async function resolveBuyer(
 // pedido y, cuando se apruebe, de crear su contraseña.
 export async function grantBuyerAccess(buyer: { user: User; isGuest: boolean }, orderId: string) {
   if (buyer.isGuest) await addGuestOrder({ userId: buyer.user.id, email: buyer.user.email }, orderId);
-}
-
-// Protección de doble cobro para compras ya aprobadas (la de pedidos
-// pendientes vive en cada ruta): si esta cuenta ya tiene una compra que
-// incluye por completo la nueva -- la misma, o una más grande como el ciclo
-// o Integral (ver entitlementIncludes) --, no se vuelve a cobrar.
-export async function alreadyCoveredResponse(
-  userId: string,
-  compra: Compra,
-  ref: Pick<Publicacion, "trimestre" | "mesComercial">
-): Promise<NextResponse | null> {
-  const entitlements = await prisma.entitlement.findMany({ where: { userId, grado: compra.grado } });
-  const incluida = entitlements.find((ent) => entitlementIncludes(ent, compra, ref));
-  if (!incluida) return null;
-  const esLaMisma = incluida.ruta === compra.ruta && incluida.cobertura === compra.cobertura &&
-    incluida.periodoComprado === compra.periodoComprado;
-  return NextResponse.json(
-    {
-      error: esLaMisma
-        ? "Este correo ya tiene esta compra. Inicia sesión para verla en tu biblioteca."
-        : "Este correo ya tiene una compra que incluye este material. Inicia sesión para verlo en tu biblioteca.",
-      alreadyOwned: true,
-    },
-    { status: 409 }
-  );
 }

@@ -15,9 +15,10 @@ export async function requireAdminUser() {
 }
 
 // El volumen de Railway esta montado en /data. ArchivoDrive.path guarda la
-// ruta relativa a esa raiz (ej. "/publicaciones/<id>.pdf").
-export const VOLUME_MOUNT = "/data";
-export const PUBLICACIONES_DIR = "/data/publicaciones";
+// ruta relativa a esa raiz (ej. "/publicaciones/<id>.pdf"). VOLUME_MOUNT
+// solo se cambia para pruebas locales (una carpeta cualquiera en disco).
+export const VOLUME_MOUNT = process.env.VOLUME_MOUNT || "/data";
+export const PUBLICACIONES_DIR = `${VOLUME_MOUNT}/publicaciones`;
 
 export function resolveVolumePath(relativePath: string) {
   return `${VOLUME_MOUNT}${relativePath}`;

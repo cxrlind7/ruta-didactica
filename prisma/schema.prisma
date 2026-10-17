@@ -48,6 +48,10 @@ model OrderItem {
   // fijo de Mercado Pago, sin tokenizar tarjeta): el codigo de la matriz de
   // 16 enlaces (QB..CI) que se cobró.
   paymentCode String?
+
+  // Solo para compras de una clase suelta (ver Clase): no llevan grado,
+  // ruta, cobertura ni periodo.
+  claseId String?
 }
 
 model Entitlement {
@@ -65,6 +69,9 @@ model Entitlement {
   ruta            String?
   cobertura       String?
   periodoComprado String?
+
+  // Copiado de OrderItem: la clase suelta que desbloquea esta compra.
+  claseId String?
 
   @@unique([userId, itemId])
 }
@@ -119,7 +126,7 @@ model Publicacion {
 model ArchivoDrive {
   id            String    @id @default(cuid())
   nombreArchivo String    @unique
-  tipo          String // planeacion | fichas | diapositiva | seguimiento
+  tipo          String // planeacion | fichas | diapositiva | seguimiento | clase
   label         String? // nombre del recurso editable a mano (si no, se calcula del periodo)
   path          String? // ruta dentro del volumen de Railway una vez subido
   sizeBytes     Int?
@@ -132,6 +139,24 @@ model ArchivoDrive {
   manual    Boolean @default(false)
   grado     Int?
   trimestre String?
+
+  clase Clase?
+}
+
+// Clase suelta: material de exposición por tema que se vende uno por uno,
+// sin grado ni periodo (ver /clases). El archivo vive en ArchivoDrive (tipo
+// "clase") para reusar el visor, la descarga sellada y el zip de la
+// biblioteca. El precio arranca en $10 y se edita en /admin/pagos.
+model Clase {
+  id             String       @id @default(cuid())
+  titulo         String
+  materia        String       @default("Español")
+  precioMXN      Int          @default(10)
+  activa         Boolean      @default(true)
+  archivoDriveId String       @unique
+  archivoDrive   ArchivoDrive @relation(fields: [archivoDriveId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }
 
 // Ajustes globales del sitio -- fila unica ("global"). Controla si /planes

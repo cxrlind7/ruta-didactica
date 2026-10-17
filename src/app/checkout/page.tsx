@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useStore } from "@/lib/store";
-import { formatMXN, gradeLabel, routes, RUTA_CODE } from "@/lib/data";
+import { cartItemTexto, compraBody, useStore } from "@/lib/store";
+import { formatMXN } from "@/lib/data";
 import RealCatalogCardCheckout from "@/components/RealCatalogCardCheckout";
 import LegalCheckbox from "@/components/LegalCheckbox";
 import LoginLink from "@/components/LoginLink";
+import AyudaCompra from "@/components/AyudaCompra";
 
 // Los enlaces fijos de Mercado Pago (modo producción) cobran una sola
 // combinación cobertura+modalidad por pago -- no se puede pagar varios
@@ -83,10 +84,7 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          grado: item.grade,
-          ruta: RUTA_CODE[item.route],
-          cobertura: item.coverage,
-          periodoComprado: item.periodoComprado,
+          ...compraBody(item),
           payerEmail: email,
           payerName: name,
         }),
@@ -186,10 +184,7 @@ export default function CheckoutPage() {
                 <fieldset className="space-y-3">
                   <legend className="text-sm font-semibold text-rd-navy mb-1">Pago con tarjeta</legend>
                   <RealCatalogCardCheckout
-                    grado={item.grade}
-                    ruta={RUTA_CODE[item.route]}
-                    cobertura={item.coverage}
-                    periodoComprado={item.periodoComprado}
+                    compra={compraBody(item)}
                     totalMXN={item.priceMXN}
                     payerEmail={email}
                     payerName={name}
@@ -220,10 +215,7 @@ export default function CheckoutPage() {
             <fieldset className="space-y-3">
               <legend className="text-sm font-semibold text-rd-navy mb-1">Pago con tarjeta de prueba</legend>
               <RealCatalogCardCheckout
-                grado={item.grade}
-                ruta={RUTA_CODE[item.route]}
-                cobertura={item.coverage}
-                periodoComprado={item.periodoComprado}
+                compra={compraBody(item)}
                 totalMXN={item.priceMXN}
                 payerEmail={email}
                 payerName={name}
@@ -234,6 +226,8 @@ export default function CheckoutPage() {
           ) : (
             <p className="text-xs text-slate-400">Cargando forma de pago…</p>
           )}
+
+          <AyudaCompra />
         </div>
 
         <div className="h-fit rounded-rd-lg border border-slate-200 bg-slate-50 p-6">
@@ -254,7 +248,7 @@ export default function CheckoutPage() {
                   }`}
                 >
                   <span className="line-clamp-1 pr-2 text-slate-600">
-                    {routes[cartItem.route].label} · {gradeLabel(cartItem.grade)} · {cartItem.periodoLabel}
+                    {cartItemTexto(cartItem).titulo} · {cartItemTexto(cartItem).detalle}
                   </span>
                   <span className="whitespace-nowrap font-semibold text-rd-navy">{formatMXN(cartItem.priceMXN)}</span>
                 </button>

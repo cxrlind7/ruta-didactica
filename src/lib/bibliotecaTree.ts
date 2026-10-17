@@ -154,3 +154,27 @@ export async function getBibliotecaTree(userId: string): Promise<GradoOut[]> {
       })),
     }));
 }
+
+export type ClaseOut = { archivoDriveId: string; titulo: string; nombreArchivo: string };
+
+// Clases sueltas que el usuario compró (o todas, si es admin) -- van aparte
+// del árbol grado/trimestre porque no tienen grado ni periodo.
+export async function getClasesCompradas(userId: string): Promise<ClaseOut[]> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return [];
+
+  const where =
+    user.role === "admin"
+      ? {}
+      : {
+          id: {
+            in: (
+              await prisma.entitlement.findMany({ where: { userId, claseId: { not: null } }, select: { claseId: true } })
+            ).map((e) => e.claseId!),
+          },
+        };
+  const clases = await prisma.clase.findMany({ where, include: { archivoDrive: true }, orderBy: { titulo: "asc" } });
+  return clases
+    .filter((c) => c.archivoDrive.ingestedAt)
+    .map((c) => ({ archivoDriveId: c.archivoDriveId, titulo: c.titulo, nombreArchivo: c.archivoDrive.nombreArchivo }));
+}

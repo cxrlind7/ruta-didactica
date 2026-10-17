@@ -9,9 +9,13 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { CoverageKey, RouteKey, RUTA_CODE, formatMXN, routes } from "./data";
+import { CoverageKey, RouteKey, RUTA_CODE, formatMXN, gradeLabel, routes } from "./data";
 
-export type CartItem = {
+// Un artículo del carrito es una ruta (grado + cobertura + periodo) o una
+// clase suelta. Las rutas guardadas antes de que existieran las clases no
+// traen `kind`, así que sin `kind` se trata como ruta.
+export type RutaCartItem = {
+  kind?: "ruta";
   id: string;
   route: RouteKey;
   grade: number;
@@ -21,16 +25,49 @@ export type CartItem = {
   priceMXN: number;
 };
 
+export type ClaseCartItem = {
+  kind: "clase";
+  id: string;
+  claseId: string;
+  titulo: string;
+  priceMXN: number;
+};
+
+export type CartItem = RutaCartItem | ClaseCartItem;
+
+export const CLASE_ICON = "/brand/materias/espanol.png";
+
+export function isClaseItem(item: CartItem): item is ClaseCartItem {
+  return item.kind === "clase";
+}
+
 export function cartItemId(route: RouteKey, grade: number, coverage: CoverageKey, periodoComprado: string) {
   return `${route}-${grade}-${coverage}-${periodoComprado}`;
 }
 
+export function claseCartItemId(claseId: string) {
+  return `clase-${claseId}`;
+}
+
+// Cómo se muestra un artículo en carrito, checkout y confirmación.
+export function cartItemTexto(item: CartItem): { titulo: string; detalle: string; icon: string } {
+  if (isClaseItem(item)) return { titulo: item.titulo, detalle: "Clase suelta · Español", icon: CLASE_ICON };
+  const route = routes[item.route];
+  return { titulo: route.label, detalle: `${gradeLabel(item.grade)} · ${item.periodoLabel}`, icon: route.icon };
+}
+
+// Lo que identifica la compra ante /api/checkout y /api/checkout/link.
+export function compraBody(item: CartItem): Record<string, unknown> {
+  if (isClaseItem(item)) return { claseId: item.claseId };
+  return { grado: item.grade, ruta: RUTA_CODE[item.route], cobertura: item.coverage, periodoComprado: item.periodoComprado };
+}
+
 function isValidCartItem(item: unknown): item is CartItem {
-  const i = item as Partial<CartItem> | null;
+  const i = item as Record<string, unknown> | null;
+  if (!i || typeof i !== "object" || typeof i.id !== "string" || typeof i.priceMXN !== "number") return false;
+  if (i.kind === "clase") return typeof i.claseId === "string" && typeof i.titulo === "string";
   return (
-    !!i &&
-    typeof i === "object" &&
-    !!i.route &&
+    typeof i.route === "string" &&
     i.route in routes &&
     typeof i.grade === "number" &&
     typeof i.periodoComprado === "string"
@@ -59,6 +96,7 @@ type StoreState = {
     periodoLabel: string,
     priceMXN: number
   ) => void;
+  addClaseToCart: (clase: { id: string; titulo: string; precioMXN: number }) => void;
   removeFromCart: (id: string) => void;
   clearCart: () => void;
   isInCart: (route: RouteKey, grade: number, coverage: CoverageKey, periodoComprado: string) => boolean;
@@ -122,21 +160,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // mismo que se va a cobrar.
   useEffect(() => {
     if (!hydrated) return;
-    fetch("/api/payment-products")
-      .then((r) => r.json())
-      .then((d: { productos: { cobertura: string; ruta: string; precioMXN: number }[] }) => {
-        const precioDe = new Map(d.productos.map((p) => [`${p.cobertura}|${p.ruta}`, p.precioMXN]));
-        setCart((prev) => {
-          let changed = false;
-          const next = prev.map((item) => {
-            const precio = precioDe.get(`${item.coverage}|${RUTA_CODE[item.route]}`);
-            if (precio == null || precio === item.priceMXN) return item;
-            changed = true;
-            return { ...item, priceMXN: precio };
+    Promise.all([
+      fetch("/api/payment-products").then((r) => r.json()),
+      fetch("/api/clases").then((r) => r.json()),
+    ])
+      .then(
+        ([p, c]: [
+          { productos: { cobertura: string; ruta: string; precioMXN: number }[] },
+          { clases: { id: string; precioMXN: number }[] },
+        ]) => {
+          const precioRuta = new Map(p.productos.map((x) => [`${x.cobertura}|${x.ruta}`, x.precioMXN]));
+          const precioClase = new Map(c.clases.map((x) => [x.id, x.precioMXN]));
+          setCart((prev) => {
+            // Una clase que ya no está a la venta (desactivada o eliminada) se
+            // quita del carrito: al pagarla, el servidor la rechazaría.
+            const vigentes = prev.filter((item) => !isClaseItem(item) || precioClase.has(item.claseId));
+            let changed = vigentes.length !== prev.length;
+            const next = vigentes.map((item) => {
+              const precio = isClaseItem(item)
+                ? precioClase.get(item.claseId)
+                : precioRuta.get(`${item.coverage}|${RUTA_CODE[item.route]}`);
+              if (precio == null || precio === item.priceMXN) return item;
+              changed = true;
+              return { ...item, priceMXN: precio };
+            });
+            return changed ? next : prev;
           });
-          return changed ? next : prev;
-        });
-      })
+        }
+      )
       .catch(() => {});
   }, [hydrated]);
 
@@ -165,6 +216,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     []
   );
+
+  const addClaseToCart = useCallback((clase: { id: string; titulo: string; precioMXN: number }) => {
+    const id = claseCartItemId(clase.id);
+    setCart((prev) =>
+      prev.some((item) => item.id === id)
+        ? prev
+        : [...prev, { kind: "clase", id, claseId: clase.id, titulo: clase.titulo, priceMXN: clase.precioMXN }]
+    );
+  }, []);
 
   const removeFromCart = useCallback((id: string) => {
     setCart((prev) => prev.filter((item) => item.id !== id));
@@ -218,6 +278,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value: StoreState = {
     cart,
     addToCart,
+    addClaseToCart,
     removeFromCart,
     clearCart,
     isInCart,

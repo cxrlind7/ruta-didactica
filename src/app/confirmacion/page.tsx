@@ -4,10 +4,11 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { useStore } from "@/lib/store";
-import { formatMXN, gradeLabel, routes, RouteKey } from "@/lib/data";
+import { cartItemTexto, useStore } from "@/lib/store";
+import { formatMXN } from "@/lib/data";
+import AyudaCompra from "@/components/AyudaCompra";
 
-type DisplayItem = { id: string; route: RouteKey; grade: number; periodoLabel: string; priceMXN: number };
+type DisplayItem = { id: string; label: string; priceMXN: number };
 type DisplayOrder = { id: string; date: string; items: DisplayItem[]; total: number };
 
 type FetchedOrder = {
@@ -16,7 +17,7 @@ type FetchedOrder = {
     id: string;
     total: number;
     createdAt: string;
-    items: { id: string; route: string; grado: number; periodoLabel: string; priceMXN: number }[];
+    items: DisplayItem[];
   };
 };
 
@@ -86,16 +87,16 @@ function ConfirmacionContent() {
           id: fetchedOrder.order.id,
           date: formatDate(fetchedOrder.order.createdAt),
           total: fetchedOrder.order.total,
-          items: fetchedOrder.order.items.map((item) => ({
-            id: item.id,
-            route: (item.route as RouteKey) in routes ? (item.route as RouteKey) : "base",
-            grade: item.grado,
-            periodoLabel: item.periodoLabel,
-            priceMXN: item.priceMXN,
-          })),
+          items: fetchedOrder.order.items,
         }
       : null
-    : lastOrder;
+    : lastOrder && {
+        ...lastOrder,
+        items: lastOrder.items.map((item) => {
+          const texto = cartItemTexto(item);
+          return { id: item.id, label: `${texto.titulo} · ${texto.detalle}`, priceMXN: item.priceMXN };
+        }),
+      };
 
   if (fetchedOrder === "loading") {
     return (
@@ -140,7 +141,7 @@ function ConfirmacionContent() {
         transition={{ delay: 0.15, duration: 0.4 }}
         className="mt-6 text-2xl sm:text-3xl font-extrabold text-rd-navy"
       >
-        Compra confirmada. Tus rutas ya están disponibles en tu biblioteca.
+        Compra confirmada. Tu material ya está disponible en tu biblioteca.
       </motion.h1>
       <p className="mt-2 text-sm text-slate-500">
         Pedido {displayOrder.id} · {displayOrder.date}
@@ -150,7 +151,7 @@ function ConfirmacionContent() {
         {displayOrder.items.map((item) => (
           <li key={item.id} className="flex justify-between py-3 text-sm">
             <span className="text-rd-navy font-medium">
-              {routes[item.route].label} · {gradeLabel(item.grade)} · {item.periodoLabel}
+              {item.label}
             </span>
             <span className="font-semibold text-slate-500">{formatMXN(item.priceMXN)}</span>
           </li>
@@ -166,7 +167,7 @@ function ConfirmacionContent() {
           <p className="text-sm font-semibold text-rd-navy">Crea una contraseña para tu cuenta</p>
           <p className="mt-1 text-xs text-slate-500">
             Compraste con <span className="font-medium">{needsPassword.email}</span>. Ponle una contraseña a esta
-            cuenta para poder volver a ver tus rutas después, desde cualquier dispositivo.
+            cuenta para poder volver a ver tu material después, desde cualquier dispositivo.
           </p>
           <Link
             href={`/cuenta/registro?email=${encodeURIComponent(needsPassword.email)}`}
@@ -202,6 +203,8 @@ function ConfirmacionContent() {
           Seguir explorando
         </Link>
       </div>
+
+      <AyudaCompra className="mt-8" />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { ArchivoDrive, Publicacion } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export type TipoKey = "planeacion" | "fichas" | "diapositiva" | "seguimiento";
+export type TipoKey = "planeacion" | "fichas" | "diapositiva" | "seguimiento" | "clase";
 
 export const RUTA_UNLOCKS: Record<string, TipoKey[]> = {
   BASE: ["planeacion", "fichas"],
@@ -68,7 +68,14 @@ export function entitlementIncludes(
 }
 
 export type AccessResult =
-  | { ok: true; publicacion: Publicacion | null; tipo: TipoKey; archivoDrive: ArchivoDrive; orderId: string | null }
+  | {
+      ok: true;
+      publicacion: Publicacion | null;
+      tipo: TipoKey;
+      archivoDrive: ArchivoDrive;
+      orderId: string | null;
+      claseTitulo?: string;
+    }
   | { ok: false; reason: "not_found" }
   | { ok: false; reason: "not_ingested" }
   | { ok: false; reason: "not_published"; publicarEl: Date }
@@ -80,6 +87,20 @@ export async function checkAccess(userId: string, archivoDriveId: string): Promi
   if (!archivoDrive.path || !archivoDrive.ingestedAt) return { ok: false, reason: "not_ingested" };
 
   const tipo = archivoDrive.tipo as TipoKey;
+
+  // Clase suelta: no depende de grado, ruta ni fecha de publicación -- solo
+  // de haberla comprado (Entitlement con su claseId).
+  if (tipo === "clase") {
+    const clase = await prisma.clase.findUnique({ where: { archivoDriveId: archivoDrive.id } });
+    if (!clase) return { ok: false, reason: "not_found" };
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (user?.role === "admin") {
+      return { ok: true, publicacion: null, tipo, archivoDrive, orderId: null, claseTitulo: clase.titulo };
+    }
+    const ent = await prisma.entitlement.findFirst({ where: { userId, claseId: clase.id } });
+    if (!ent) return { ok: false, reason: "not_purchased" };
+    return { ok: true, publicacion: null, tipo, archivoDrive, orderId: ent.orderId, claseTitulo: clase.titulo };
+  }
 
   if (archivoDrive.manual) {
     const user = await prisma.user.findUnique({ where: { id: userId } });

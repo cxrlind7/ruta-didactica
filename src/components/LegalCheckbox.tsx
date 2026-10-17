@@ -14,15 +14,16 @@ export default function LegalCheckbox({
       <div className="mt-2 max-h-64 space-y-3 overflow-y-auto pr-2 text-xs leading-relaxed text-slate-600">
         <p>
           <strong className="text-rd-navy">Ruta Didáctica comercializa materiales educativos digitales para docentes de
-          primaria.</strong> Cada compra corresponde exclusivamente al grado, periodo, cobertura y modalidad
-          seleccionados.
+          primaria.</strong> Cada compra corresponde exclusivamente al material seleccionado: en las rutas, al grado,
+          periodo, cobertura y modalidad elegidos; en las clases sueltas, al tema de la clase elegida.
         </p>
         <p>
           <strong className="text-rd-navy">Ruta Base</strong> incluye planeación y fichas de trabajo.{" "}
           <strong className="text-rd-navy">Ruta Visual</strong> incluye planeación, fichas y diapositivas.{" "}
           <strong className="text-rd-navy">Ruta Seguimiento</strong> incluye planeación, fichas y sistema de
           seguimiento, registro y retroalimentación. <strong className="text-rd-navy">Ruta Integral</strong> reúne
-          todos los recursos anteriores.
+          todos los recursos anteriores. Las <strong className="text-rd-navy">clases sueltas</strong> son
+          presentaciones de un tema específico que se compran por separado.
         </p>
         <p>
           Los productos son <strong className="text-rd-navy">digitales</strong> y no incluyen materiales impresos,
@@ -32,7 +33,10 @@ export default function LegalCheckbox({
         <div>
           <p className="font-bold text-rd-navy">Disponibilidad de los materiales</p>
           <p className="mt-1">
-            Las planeaciones, fichas, evidencias y diapositivas se habilitarán progresivamente en la biblioteca
+            Las clases sueltas quedan disponibles en la biblioteca en cuanto se confirma el pago.
+          </p>
+          <p className="mt-1">
+            En las rutas, las planeaciones, fichas, evidencias y diapositivas se habilitarán progresivamente en la biblioteca
             digital del comprador <strong className="text-rd-navy">una semana antes del periodo previsto para su
             aplicación</strong>.
           </p>
@@ -56,7 +60,7 @@ export default function LegalCheckbox({
           <p className="font-bold text-rd-navy">Licencia de uso</p>
           <p className="mt-1">
             La compra concede una <strong className="text-rd-navy">licencia individual de uso para un docente</strong>,
-            correspondiente al grado, periodo y modalidad adquiridos.
+            correspondiente al material adquirido.
           </p>
           <p className="mt-1">
             No se autoriza la reventa, publicación abierta, distribución masiva, intercambio, reproducción con fines
@@ -92,8 +96,8 @@ export default function LegalCheckbox({
         <div>
           <p className="font-bold text-rd-navy">Garantía de compra</p>
           <p className="mt-1">
-            Ruta Didáctica garantiza que cada compra dará acceso a los materiales correspondientes al grado, periodo,
-            cobertura y modalidad seleccionados, conforme al calendario de publicación informado.
+            Ruta Didáctica garantiza que cada compra dará acceso a los materiales adquiridos: en las rutas, conforme al
+            calendario de publicación informado; en las clases sueltas, en cuanto se confirma el pago.
           </p>
           <p className="mt-1">
             Por la naturaleza digital de los contenidos, las compras son definitivas una vez habilitado el acceso a
@@ -109,8 +113,8 @@ export default function LegalCheckbox({
         </div>
 
         <p className="font-semibold text-rd-navy">
-          Antes de confirmar tu compra, verifica cuidadosamente que el grado, periodo, cobertura, modalidad,
-          contenido y precio seleccionados sean los correctos.
+          Antes de confirmar tu compra, verifica cuidadosamente que el material seleccionado (grado, periodo,
+          cobertura y modalidad en las rutas, o el tema en las clases sueltas) y el precio sean los correctos.
         </p>
       </div>
 

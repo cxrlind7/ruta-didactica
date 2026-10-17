@@ -14,13 +14,14 @@ export default function Footer() {
         </div>
 
         <FooterCol
-          title="Rutas"
+          title="Materiales"
           links={[
             { href: "/planes", label: "Ruta Base" },
             { href: "/planes", label: "Ruta Visual" },
             { href: "/planes", label: "Ruta Seguimiento" },
             { href: "/planes", label: "Ruta Integral" },
             { href: "/planes#precios", label: "Precios por cobertura" },
+            { href: "/clases", label: "Clases sueltas" },
           ]}
         />
 

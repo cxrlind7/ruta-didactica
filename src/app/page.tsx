@@ -49,6 +49,11 @@ const stats = [
 
 export default async function Home() {
   const productos = await prisma.paymentProduct.findMany({ where: { active: true, cobertura: "quincena" } });
+  const claseMasBarata = await prisma.clase.findFirst({
+    where: { activa: true, archivoDrive: { ingestedAt: { not: null } } },
+    orderBy: { precioMXN: "asc" },
+    select: { precioMXN: true },
+  });
   const precioQuincenaDe = (route: RouteKey) =>
     productos.find((p) => p.ruta === RUTA_CODE[route])?.precioMXN ?? routes[route].priceMXN;
 
@@ -65,45 +70,64 @@ export default async function Home() {
           className="animate-rd-blob-slow pointer-events-none absolute -top-10 right-0 h-96 w-96 rounded-full bg-rd-turquoise/20 blur-3xl"
         />
 
-        <div className="relative mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 pt-16 lg:pt-24 pb-24 lg:pb-32 text-center">
-          <Reveal>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-rd-violet/20 bg-rd-violet/5 px-3 py-1 text-xs font-bold uppercase tracking-wide text-rd-violet">
-              Ciclo 2026-2027
-            </span>
-          </Reveal>
-          <Reveal delay={0.08}>
-            <h1 className="mt-5 text-4xl sm:text-5xl font-extrabold text-rd-navy leading-tight">
-              Cada aprendizaje
-              <br /> tiene su camino.
-            </h1>
-          </Reveal>
-          <Reveal delay={0.16}>
-            <p className="mt-5 text-lg text-slate-600 mx-auto max-w-md">
-              Cuatro rutas de acompañamiento docente alineadas al NEM 2022, con planeación, apoyo visual y
-              seguimiento pedagógico para primaria.
-            </p>
-          </Reveal>
-          <Reveal delay={0.24}>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link
-                href="/planes"
-                className="group inline-flex items-center gap-2 rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-rd-navy hover:shadow-lg hover:shadow-rd-violet/20"
-              >
-                Ver rutas y precios
-                <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-              <Link
-                href="/ayuda#como-funciona"
-                className="inline-flex items-center gap-2 rounded-rd-md border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-rd-navy transition-colors hover:border-rd-sky"
-              >
-                <PlayGlyph /> Ver cómo funciona
-              </Link>
-            </div>
-          </Reveal>
-          <Reveal delay={0.32}>
-            <p className="mt-4 text-sm font-semibold text-rd-violet">
-              Comienza con una quincena desde {formatMXN(precioQuincenaDe("base"))}.
-            </p>
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:px-8 pt-16 lg:pt-20 pb-24 lg:pb-28">
+          <div className="text-center lg:text-left">
+            <Reveal>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-rd-violet/20 bg-rd-violet/5 px-3 py-1 text-xs font-bold uppercase tracking-wide text-rd-violet">
+                Ciclo 2026-2027
+              </span>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <h1 className="mt-5 text-4xl sm:text-5xl font-extrabold text-rd-navy leading-tight">
+                Cada aprendizaje
+                <br /> tiene su camino.
+              </h1>
+            </Reveal>
+            <Reveal delay={0.16}>
+              <p className="mt-5 text-lg text-slate-600 mx-auto max-w-md lg:mx-0">
+                Cuatro rutas de acompañamiento docente alineadas al NEM 2022, con planeación, apoyo visual y
+                seguimiento pedagógico para primaria.
+              </p>
+            </Reveal>
+            <Reveal delay={0.24}>
+              <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
+                <Link
+                  href="/planes"
+                  className="group inline-flex items-center gap-2 rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-rd-navy hover:shadow-lg hover:shadow-rd-violet/20"
+                >
+                  Ver rutas y precios
+                  <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+                <Link
+                  href="/ayuda#como-funciona"
+                  className="inline-flex items-center gap-2 rounded-rd-md border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-rd-navy transition-colors hover:border-rd-sky"
+                >
+                  <PlayGlyph /> Ver cómo funciona
+                </Link>
+              </div>
+            </Reveal>
+            <Reveal delay={0.32}>
+              <p className="mt-4 text-sm font-semibold text-rd-violet">
+                Comienza con una quincena desde {formatMXN(precioQuincenaDe("base"))}.
+              </p>
+            </Reveal>
+          </div>
+
+          {/* Pieza promocional (el precio va dibujado en la imagen: si cambian
+              los precios en /admin/pagos, hay que reemplazarla a mano). */}
+          <Reveal delay={0.2}>
+            <Link href="/planes" className="group mx-auto block max-w-md lg:max-w-none">
+              <Image
+                src="/brand/promo/clase-preparada-desde-10.jpg"
+                alt="Clase preparada desde $10 con Ruta Didáctica"
+                width={1254}
+                height={1254}
+                sizes="(min-width: 1024px) 560px, (min-width: 448px) 448px, 100vw"
+                loading="eager"
+                fetchPriority="high"
+                className="w-full rounded-rd-lg shadow-xl shadow-rd-violet/10 transition-transform duration-300 group-hover:-translate-y-1"
+              />
+            </Link>
           </Reveal>
         </div>
 
@@ -121,6 +145,38 @@ export default async function Home() {
           <path fill="var(--rd-violet)" fillOpacity="0.12" d="M0,90 C420,40 1040,110 1440,50 L1440,120 L0,120 Z" />
         </svg>
       </section>
+
+      {/* Clases sueltas (solo si ya hay alguna a la venta) */}
+      {claseMasBarata && (
+        <section className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-12">
+          <Link
+            href="/clases"
+            className="group grid items-center gap-6 rounded-rd-lg border border-slate-200 bg-white p-6 transition-shadow hover:shadow-xl sm:grid-cols-[auto_1fr] sm:p-8"
+          >
+            <Image
+              src="/brand/promo/clases-desde-10.png"
+              alt=""
+              width={800}
+              height={728}
+              sizes="200px"
+              className="mx-auto w-40 drop-shadow-lg transition-transform group-hover:-rotate-2 sm:w-48"
+            />
+            <div className="text-center sm:text-left">
+              <p className="text-xs font-bold uppercase tracking-wider text-rd-violet">Nuevo · Clases sueltas</p>
+              <h2 className="mt-2 text-2xl sm:text-3xl font-extrabold text-rd-navy">
+                ¿Solo necesitas un tema? Compra la clase.
+              </h2>
+              <p className="mt-2 text-slate-600">
+                Presentaciones de Español listas para exponer, desde {formatMXN(claseMasBarata.precioMXN)} cada una.
+              </p>
+              <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-rd-violet">
+                Ver clases
+                <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </div>
+          </Link>
+        </section>
+      )}
 
       {/* Rutas comerciales */}
       <section className="bg-slate-50 border-b border-slate-200">

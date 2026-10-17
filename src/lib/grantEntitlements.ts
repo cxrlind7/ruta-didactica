@@ -20,6 +20,7 @@ export async function approveOrder(orderId: string): Promise<void> {
         ruta: item.ruta,
         cobertura: item.cobertura,
         periodoComprado: item.periodoComprado,
+        claseId: item.claseId,
       })),
       skipDuplicates: true,
     }),

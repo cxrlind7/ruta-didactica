@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getGuest, getSessionUser } from "@/lib/session";
-import { periodoLabelFor, type Cobertura } from "@/lib/periodos";
-
-const RUTA_A_KEY: Record<string, string> = { BASE: "base", VISUAL: "visual", SEGUIMIENTO: "seguimiento", INTEGRAL: "integral" };
+import { etiquetasDeItems } from "@/lib/pedidoLabel";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,15 +22,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   // back_urls.success con una recarga completa, así que /confirmacion no
   // tiene forma de saber qué se compró desde el estado local del carrito
   // como sí pasa con el pago con tarjeta (que nunca sale del sitio).
-  const items = order.items
-    .filter((item) => item.grado !== null && item.ruta !== null && item.cobertura !== null && item.periodoComprado !== null)
-    .map((item) => ({
-      id: item.id,
-      route: RUTA_A_KEY[item.ruta!] ?? item.ruta,
-      grado: item.grado!,
-      periodoLabel: periodoLabelFor(item.cobertura as Cobertura, item.periodoComprado!),
-      priceMXN: item.priceMXN,
-    }));
+  const etiquetas = await etiquetasDeItems(order.items);
+  const items = order.items.map((item) => ({ id: item.id, label: etiquetas.get(item.id)!, priceMXN: item.priceMXN }));
 
   return NextResponse.json({
     status: order.status,

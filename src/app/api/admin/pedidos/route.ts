@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/lib/admin";
+import { etiquetasDeItems } from "@/lib/pedidoLabel";
 
 // Listado de pedidos para el panel admin -- pensado sobre todo para
 // confirmar manualmente los pedidos hechos con los enlaces fijos de
@@ -16,6 +17,8 @@ export async function GET() {
     include: { user: { select: { email: true, name: true } }, items: true },
   });
 
+  const etiquetas = await etiquetasDeItems(orders.flatMap((o) => o.items));
+
   return NextResponse.json({
     pedidos: orders.map((o) => ({
       id: o.id,
@@ -25,9 +28,7 @@ export async function GET() {
       createdAt: o.createdAt,
       cliente: { email: o.user.email, nombre: o.user.name },
       items: o.items.map((i) => ({
-        grado: i.grado,
-        ruta: i.ruta,
-        cobertura: i.cobertura,
+        label: etiquetas.get(i.id)!,
         periodoComprado: i.periodoComprado,
         paymentCode: i.paymentCode,
         priceMXN: i.priceMXN,

@@ -15,6 +15,7 @@ type ArchivoOut = { archivoDriveId: string; label: string; nombreArchivo: string
 type TipoOut = { tipo: TipoKey; archivos: ArchivoOut[] };
 type TrimestreOut = { trimestre: string; tipos: TipoOut[] };
 type GradoOut = { grado: number; trimestres: TrimestreOut[] };
+type ClaseOut = { archivoDriveId: string; titulo: string; nombreArchivo: string };
 
 const TIPO_META: Record<TipoKey, { label: string; icon: typeof DocIcon }> = {
   planeacion: { label: "Planeaciones", icon: DocIcon },
@@ -34,6 +35,7 @@ const GRADO_LABEL: Record<number, string> = { 1: "1º", 2: "2º", 3: "3º", 4: "
 
 export default function BibliotecaReal() {
   const [grados, setGrados] = useState<GradoOut[] | null>(null);
+  const [clases, setClases] = useState<ClaseOut[]>([]);
   const [selectedTrimestre, setSelectedTrimestre] = useState<Record<number, string>>({});
   const [viewer, setViewer] = useState<{ kind: "pdf" | "docx" | "xlsx"; id: string } | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
@@ -41,8 +43,11 @@ export default function BibliotecaReal() {
 
   useEffect(() => {
     fetch("/api/biblioteca")
-      .then((res) => (res.ok ? res.json() : { grados: [] }))
-      .then((data: { grados: GradoOut[] }) => setGrados(data.grados))
+      .then((res) => (res.ok ? res.json() : { grados: [], clases: [] }))
+      .then((data: { grados: GradoOut[]; clases?: ClaseOut[] }) => {
+        setClases(data.clases ?? []);
+        setGrados(data.grados);
+      })
       .catch(() => setGrados([]));
   }, []);
 
@@ -76,16 +81,24 @@ export default function BibliotecaReal() {
 
   if (!grados) return <LoadingScreen label="Cargando tu biblioteca…" />;
 
-  if (grados.length === 0) {
+  if (grados.length === 0 && clases.length === 0) {
     return (
       <div className="mb-10 rounded-rd-md border border-dashed border-slate-300 p-12 text-center">
-        <p className="text-rd-navy font-semibold">Todavía no tienes rutas adquiridas.</p>
-        <Link
-          href="/planes"
-          className="mt-4 inline-flex rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-semibold text-white hover:bg-rd-navy"
-        >
-          Ver rutas y precios
-        </Link>
+        <p className="text-rd-navy font-semibold">Todavía no tienes rutas ni clases adquiridas.</p>
+        <div className="mt-4 flex flex-wrap justify-center gap-3">
+          <Link
+            href="/planes"
+            className="inline-flex rounded-rd-md bg-rd-violet px-6 py-3 text-sm font-semibold text-white hover:bg-rd-navy"
+          >
+            Ver rutas y precios
+          </Link>
+          <Link
+            href="/clases"
+            className="inline-flex rounded-rd-md border border-slate-300 px-6 py-3 text-sm font-semibold text-rd-navy hover:border-rd-sky"
+          >
+            Ver clases sueltas
+          </Link>
+        </div>
       </div>
     );
   }
@@ -204,6 +217,37 @@ export default function BibliotecaReal() {
           </section>
         );
       })}
+
+      {clases.length > 0 && (
+        <section className="rounded-rd-lg border border-slate-200 bg-white p-5">
+          <h2 className="text-sm font-bold text-rd-navy">Clases sueltas</h2>
+          <ul className="mt-3 divide-y divide-slate-100 rounded-rd-sm border border-slate-100">
+            {clases.map((c) => (
+              <li key={c.archivoDriveId} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
+                <p className="min-w-0 flex-1 truncate font-medium text-rd-navy" title={c.titulo}>
+                  {c.titulo}
+                </p>
+                <span className="flex shrink-0 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setViewer({ kind: "pdf", id: c.archivoDriveId })}
+                    className="rounded-rd-sm bg-rd-violet px-2 py-1 font-semibold text-white hover:bg-rd-navy"
+                  >
+                    Ver
+                  </button>
+                  <a
+                    href={`/api/archivos/${c.archivoDriveId}/descargar`}
+                    download={c.nombreArchivo}
+                    className="rounded-rd-sm border border-rd-violet px-2 py-1 font-semibold text-rd-violet hover:bg-rd-violet/10"
+                  >
+                    Descargar
+                  </a>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {viewer?.kind === "pdf" && <PdfViewerModal archivoDriveId={viewer.id} onClose={() => setViewer(null)} />}
       {viewer?.kind === "docx" && <DocxViewerModal archivoDriveId={viewer.id} onClose={() => setViewer(null)} />}

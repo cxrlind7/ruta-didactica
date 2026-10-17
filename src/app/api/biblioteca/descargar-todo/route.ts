@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import JSZip from "jszip";
 import { getSessionUser } from "@/lib/session";
-import { getBibliotecaTree } from "@/lib/bibliotecaTree";
+import { getBibliotecaTree, getClasesCompradas } from "@/lib/bibliotecaTree";
 import { resolveDownloadOrError } from "@/lib/descargaInfo";
 import { sealPdf } from "@/lib/pdfSeal";
 import { sealDocx, sealXlsx } from "@/lib/officeSeal";
@@ -19,33 +19,42 @@ export async function GET() {
   const sessionUser = await getSessionUser();
   if (!sessionUser) return NextResponse.json({ error: "Inicia sesión" }, { status: 401 });
 
-  const grados = await getBibliotecaTree(sessionUser.userId);
-  if (grados.length === 0) {
+  const [grados, clases] = await Promise.all([
+    getBibliotecaTree(sessionUser.userId),
+    getClasesCompradas(sessionUser.userId),
+  ]);
+  if (grados.length === 0 && clases.length === 0) {
     return NextResponse.json({ error: "Todavía no tienes rutas adquiridas." }, { status: 404 });
   }
 
   const zip = new JSZip();
 
+  async function agregar(archivoDriveId: string, carpeta: string) {
+    const resolved = await resolveDownloadOrError(sessionUser!, archivoDriveId);
+    if (!resolved.ok) return; // no debería pasar (ya viene filtrado), pero no se aborta el zip completo por uno
+
+    const { archivoDrive, ext, sealInfo } = resolved.data;
+    const bytes = await readFile(resolveVolumePath(archivoDrive.path!));
+    let sealed: Uint8Array = bytes;
+    if (ext === "pdf") sealed = await sealPdf(bytes, sealInfo);
+    else if (ext === "docx") sealed = await sealDocx(bytes, sealInfo);
+    else if (ext === "xlsx") sealed = await sealXlsx(bytes, sealInfo);
+    zip.file(`${carpeta}/${archivoDrive.nombreArchivo}`, sealed);
+  }
+
   for (const g of grados) {
     for (const t of g.trimestres) {
       for (const tipo of t.tipos) {
         for (const a of tipo.archivos) {
-          const resolved = await resolveDownloadOrError(sessionUser, a.archivoDriveId);
-          if (!resolved.ok) continue; // no debería pasar (ya viene filtrado), pero no se aborta el zip completo por uno
-
-          const { archivoDrive, ext, sealInfo } = resolved.data;
-          const bytes = await readFile(resolveVolumePath(archivoDrive.path!));
-          let sealed: Uint8Array = bytes;
-          if (ext === "pdf") sealed = await sealPdf(bytes, sealInfo);
-          else if (ext === "docx") sealed = await sealDocx(bytes, sealInfo);
-          else if (ext === "xlsx") sealed = await sealXlsx(bytes, sealInfo);
-
-          const carpeta = `${g.grado}º grado/${TRIMESTRE_LABEL[t.trimestre] ?? t.trimestre}/${TIPO_LABEL[tipo.tipo] ?? tipo.tipo}`;
-          zip.file(`${carpeta}/${archivoDrive.nombreArchivo}`, sealed);
+          await agregar(
+            a.archivoDriveId,
+            `${g.grado}º grado/${TRIMESTRE_LABEL[t.trimestre] ?? t.trimestre}/${TIPO_LABEL[tipo.tipo] ?? tipo.tipo}`
+          );
         }
       }
     }
   }
+  for (const c of clases) await agregar(c.archivoDriveId, "Clases sueltas");
 
   const zipped = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE", compressionOptions: { level: 6 } });
 

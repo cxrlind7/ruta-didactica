@@ -12,7 +12,7 @@ export default function BibliotecaPage() {
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
         <h1 className="text-2xl font-bold text-rd-navy">Mi biblioteca</h1>
         <p className="mt-2 text-slate-500">
-          Inicia sesión para ver tus rutas adquiridas y descargas.
+          Inicia sesión para ver tu material adquirido y tus descargas.
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <Link
@@ -38,7 +38,7 @@ export default function BibliotecaPage() {
         <h1 className="text-3xl font-extrabold text-rd-navy">Mi biblioteca</h1>
         <p className="mt-2 text-slate-500">
           {isLoggedIn ? `Hola, ${account?.name}. ` : ""}
-          Aquí encuentras las rutas que has adquirido, listas para descargar.
+          Aquí encuentras las rutas y clases que has adquirido, listas para descargar.
         </p>
       </div>
 

@@ -58,12 +58,14 @@ export async function resolveDownloadOrError(
     };
   }
 
-  const { archivoDrive, tipo, publicacion, orderId } = result;
+  const { archivoDrive, tipo, publicacion, orderId, claseTitulo } = result;
   const ext = archivoDrive.nombreArchivo.split(".").pop()?.toLowerCase() ?? "";
   const user = await prisma.user.findUnique({ where: { id: sessionUser.userId } });
-  const titulo = publicacion
-    ? `${TIPO_LABEL[tipo]} · Grado ${publicacion.grado} · ${publicacion.periodo}`
-    : `${TIPO_LABEL[tipo]} · Grado ${archivoDrive.grado} · ${archivoDrive.trimestre}`;
+  const titulo = claseTitulo
+    ? `Clase · ${claseTitulo}`
+    : publicacion
+      ? `${TIPO_LABEL[tipo]} · Grado ${publicacion.grado} · ${publicacion.periodo}`
+      : `${TIPO_LABEL[tipo]} · Grado ${archivoDrive.grado} · ${archivoDrive.trimestre}`;
 
   const sealInfo: SealInfo = {
     nombre: user?.name || sessionUser.email,
