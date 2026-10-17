@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { grantBuyerAccess, resolveBuyer } from "@/lib/buyer";
+import { alreadyPurchasedResponse, grantBuyerAccess, resolveBuyer } from "@/lib/buyer";
 import { createMpOrder } from "@/lib/mercadoPagoOrder";
 import { getModoPago } from "@/lib/modoPago";
 import { RouteKey } from "@/lib/data";
@@ -97,6 +97,10 @@ export async function POST(req: NextRequest) {
   if (!buyer.ok) return buyer.response;
   const { user } = buyer;
 
+  const itemId = `${grado}-${rutaCodigo}-${cobertura}-${periodoComprado}`;
+  const alreadyPurchased = await alreadyPurchasedResponse(user.id, itemId);
+  if (alreadyPurchased) return alreadyPurchased;
+
   // Protección de doble cobro: si ya hay un pedido pendiente para exactamente
   // el mismo grado+ruta+cobertura+periodo, no se crea uno nuevo.
   const existingPending = await prisma.order.findFirst({
@@ -123,7 +127,7 @@ export async function POST(req: NextRequest) {
       items: {
         create: [
           {
-            itemId: `${grado}-${rutaCodigo}-${cobertura}-${periodoComprado}`,
+            itemId,
             priceMXN,
             grado,
             ruta: rutaCodigo,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { grantBuyerAccess, resolveBuyer } from "@/lib/buyer";
+import { alreadyPurchasedResponse, grantBuyerAccess, resolveBuyer } from "@/lib/buyer";
 import { createMpPreference } from "@/lib/mercadoPagoPreference";
 
 // Checkout en modo "producción" por enlace: no tokeniza tarjeta -- registra
@@ -93,6 +93,10 @@ export async function POST(req: NextRequest) {
   if (!buyer.ok) return buyer.response;
   const { user } = buyer;
 
+  const itemId = `${grado}-${rutaCodigo}-${cobertura}-${periodoComprado}`;
+  const alreadyPurchased = await alreadyPurchasedResponse(user.id, itemId);
+  if (alreadyPurchased) return alreadyPurchased;
+
   const title = `Ruta ${RUTA_LABEL[rutaCodigo] ?? rutaCodigo} · Grado ${grado} · ${
     COBERTURA_LABEL[cobertura] ?? cobertura
   } (${periodoComprado})`;
@@ -130,7 +134,7 @@ export async function POST(req: NextRequest) {
       items: {
         create: [
           {
-            itemId: `${grado}-${rutaCodigo}-${cobertura}-${periodoComprado}`,
+            itemId,
             priceMXN: producto.precioMXN,
             grado,
             ruta: rutaCodigo,

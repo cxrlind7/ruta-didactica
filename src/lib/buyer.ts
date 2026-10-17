@@ -43,3 +43,16 @@ export async function resolveBuyer(
 export async function grantBuyerAccess(buyer: { user: User; isGuest: boolean }, orderId: string) {
   if (buyer.isGuest) await addGuestOrder({ userId: buyer.user.id, email: buyer.user.email }, orderId);
 }
+
+// Protección de doble cobro para compras ya aprobadas (la de pedidos
+// pendientes vive en cada ruta): si esta cuenta ya tiene exactamente este
+// grado+ruta+cobertura+periodo, no se vuelve a cobrar. Se revisa el
+// Entitlement porque es lo que deja approveOrder() al aprobar el pago.
+export async function alreadyPurchasedResponse(userId: string, itemId: string): Promise<NextResponse | null> {
+  const owned = await prisma.entitlement.findUnique({ where: { userId_itemId: { userId, itemId } } });
+  if (!owned) return null;
+  return NextResponse.json(
+    { error: "Este correo ya tiene esta compra. Inicia sesión para verla en tu biblioteca.", alreadyOwned: true },
+    { status: 409 }
+  );
+}
