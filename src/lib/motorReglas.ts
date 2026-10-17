@@ -40,6 +40,33 @@ export function manualCoverageMatches(ent: EntitlementLike, trimestre: string): 
   return ent.cobertura === "trimestre" && ent.periodoComprado === trimestre;
 }
 
+// ¿Una compra ya otorgada (ent) incluye por completo una compra nueva? Se usa
+// para no cobrar dos veces lo mismo (ver alreadyCoveredResponse en
+// buyer.ts). "Por completo" quiere decir: mismo grado, la ruta ya desbloquea
+// todos los tipos de la nueva, y el periodo ya cubre el nuevo -- ciclo >
+// trimestre > mes > quincena, igual que en coverageMatches. Unir varias
+// compras chicas no cuenta: dos quincenas no incluyen su mes, porque el mes
+// también trae el seguimiento mensual. `ref` es la fila de Publicacion del
+// periodo nuevo, de donde salen su trimestre y su mes.
+export type Compra = { grado: number; ruta: string; cobertura: string; periodoComprado: string };
+
+export function entitlementIncludes(
+  ent: EntitlementLike & { grado: number | null },
+  compra: Compra,
+  ref: Pick<Publicacion, "trimestre" | "mesComercial">
+): boolean {
+  if (ent.grado !== compra.grado || !ent.ruta) return false;
+  const tiposYaDesbloqueados = RUTA_UNLOCKS[ent.ruta] ?? [];
+  if (!(RUTA_UNLOCKS[compra.ruta] ?? []).every((tipo) => tiposYaDesbloqueados.includes(tipo))) return false;
+
+  if (ent.cobertura === "ciclo") return true;
+  if (ent.cobertura === "trimestre") return compra.cobertura !== "ciclo" && ent.periodoComprado === ref.trimestre;
+  if (ent.cobertura === "mes") {
+    return (compra.cobertura === "mes" || compra.cobertura === "quincena") && ent.periodoComprado === ref.mesComercial;
+  }
+  return compra.cobertura === "quincena" && ent.periodoComprado === compra.periodoComprado;
+}
+
 export type AccessResult =
   | { ok: true; publicacion: Publicacion | null; tipo: TipoKey; archivoDrive: ArchivoDrive; orderId: string | null }
   | { ok: false; reason: "not_found" }

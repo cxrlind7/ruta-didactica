@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { alreadyPurchasedResponse, grantBuyerAccess, resolveBuyer } from "@/lib/buyer";
+import { alreadyCoveredResponse, grantBuyerAccess, resolveBuyer } from "@/lib/buyer";
 import { createMpPreference } from "@/lib/mercadoPagoPreference";
 
 // Checkout en modo "producción" por enlace: no tokeniza tarjeta -- registra
@@ -94,8 +94,12 @@ export async function POST(req: NextRequest) {
   const { user } = buyer;
 
   const itemId = `${grado}-${rutaCodigo}-${cobertura}-${periodoComprado}`;
-  const alreadyPurchased = await alreadyPurchasedResponse(user.id, itemId);
-  if (alreadyPurchased) return alreadyPurchased;
+  const alreadyCovered = await alreadyCoveredResponse(
+    user.id,
+    { grado, ruta: rutaCodigo, cobertura, periodoComprado },
+    publicacionRef
+  );
+  if (alreadyCovered) return alreadyCovered;
 
   const title = `Ruta ${RUTA_LABEL[rutaCodigo] ?? rutaCodigo} · Grado ${grado} · ${
     COBERTURA_LABEL[cobertura] ?? cobertura
