@@ -4,7 +4,8 @@ from PIL import Image
 import numpy as np
 from scipy import ndimage
 
-ROOT = r"C:\Users\CarlosOmarAldabaEstr\Desktop\ruta-1-demo"
+# Raíz del repo: este script vive en docs/_extract/.
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SRC = os.path.join(ROOT, "public", "Elementos visuales")
 DST = os.path.join(ROOT, "public", "brand")
 

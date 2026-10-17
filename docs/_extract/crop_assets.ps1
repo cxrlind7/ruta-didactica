@@ -1,7 +1,9 @@
 Add-Type -AssemblyName System.Drawing
 
-$media = "C:\Users\CarlosOmarAldabaEstr\Desktop\ruta-1-demo\_extract\word\media"
-$out   = "C:\Users\CarlosOmarAldabaEstr\Desktop\ruta-1-demo\public_assets\brand"
+# Este script vive en docs/_extract/; la raíz del repo está dos niveles arriba.
+$root  = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+$media = Join-Path $PSScriptRoot "word\media"
+$out   = Join-Path $root "public_assets\brand"
 
 function Get-TightBBox {
     param([System.Drawing.Bitmap]$bmp)
