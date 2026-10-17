@@ -116,7 +116,7 @@ export default async function Home() {
           {/* Pieza promocional (el precio va dibujado en la imagen: si cambian
               los precios en /admin/pagos, hay que reemplazarla a mano). */}
           <Reveal delay={0.2}>
-            <Link href="/planes" className="group mx-auto block max-w-md lg:max-w-none">
+            <Link href="/clases" className="group mx-auto block max-w-md lg:max-w-none">
               <Image
                 src="/brand/promo/clase-preparada-desde-10.jpg"
                 alt="Clase preparada desde $10 con Ruta Didáctica"
