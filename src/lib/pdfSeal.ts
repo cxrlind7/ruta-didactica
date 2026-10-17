@@ -11,7 +11,8 @@ export type SealInfo = {
 // Sella un PDF real (Fichas/Diapositivas) con:
 //  1. una pagina inicial de trazabilidad forense (a quien se le entrego y
 //     cuando), y
-//  2. una estampa discreta en el pie de cada pagina (incluida la nueva).
+//  2. una estampa en el pie de cada pagina (incluida la nueva), sobre una
+//     franja blanca para que se lea aun encima de una foto.
 // Es disuasorio, no DRM real: cualquiera con suficiente esfuerzo puede
 // quitarlo. El visor seguro (src/app/visor) agrega una capa adicional de
 // disuasion (bloqueo de imprimir/guardar, overlay del correo).
@@ -59,16 +60,25 @@ export async function sealPdf(bytes: Uint8Array, info: SealInfo): Promise<Uint8A
     color: [0.4, 0.4, 0.4],
   });
 
+  // La estampa va sobre una franja blanca semitransparente: muchas
+  // diapositivas son una foto a página completa, y el texto gris sin fondo
+  // casi no se leía encima. El tamaño escala con el ancho de la página (las
+  // diapositivas son páginas mucho más grandes que una carta) y se reduce si
+  // no cabe en una sola línea.
   const stamp = `${info.nombre} · ${info.email} · Pedido ${info.orderId} · ${fecha}`;
+  const margen = 24;
   for (const page of pdfDoc.getPages()) {
     const { width } = page.getSize();
+    const anchoUnitario = font.widthOfTextAtSize(stamp, 1);
+    const size = Math.min(Math.max(8, width * 0.011), (width - margen * 2) / anchoUnitario);
+    const alto = size * 2.2;
+    page.drawRectangle({ x: 0, y: 0, width, height: alto, color: rgb(1, 1, 1), opacity: 0.82 });
     page.drawText(stamp, {
-      x: 24,
-      y: 14,
-      size: 6.5,
+      x: margen,
+      y: (alto - size) / 2 + size * 0.15,
+      size,
       font,
-      color: rgb(0.55, 0.55, 0.55),
-      maxWidth: width - 48,
+      color: rgb(0.11, 0.18, 0.4),
     });
   }
 
