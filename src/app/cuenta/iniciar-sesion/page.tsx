@@ -1,15 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useStore } from "@/lib/store";
 
+// Solo rutas internas: un ?next= arbitrario permitiría mandar al usuario a
+// otro sitio después de iniciar sesión.
+function safeNext(value: string | null): string {
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/biblioteca";
+}
+
 export default function IniciarSesionPage() {
+  return (
+    <Suspense fallback={null}>
+      <IniciarSesionForm />
+    </Suspense>
+  );
+}
+
+function IniciarSesionForm() {
   const { setAccountLocal } = useStore();
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const searchParams = useSearchParams();
+  const next = safeNext(searchParams.get("next"));
+  const [email, setEmail] = useState(searchParams.get("email") || "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -30,7 +46,7 @@ export default function IniciarSesionPage() {
         return;
       }
       setAccountLocal(data.email, data.name);
-      router.push("/biblioteca");
+      router.push(next);
     } catch {
       setError("No se pudo iniciar sesión. Intenta de nuevo.");
     } finally {

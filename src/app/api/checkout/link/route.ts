@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { setSession } from "@/lib/session";
+import { grantBuyerAccess, resolveBuyer } from "@/lib/buyer";
 import { createMpPreference } from "@/lib/mercadoPagoPreference";
 
 // Checkout en modo "producción" por enlace: no tokeniza tarjeta -- registra
@@ -89,12 +89,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Ese producto no está disponible por ahora" }, { status: 400 });
   }
 
-  const user = await prisma.user.upsert({
-    where: { email: payerEmail },
-    update: payerName ? { name: payerName } : {},
-    create: { email: payerEmail, name: payerName || undefined },
-  });
-  await setSession({ userId: user.id, email: user.email });
+  const buyer = await resolveBuyer(payerEmail, payerName);
+  if (!buyer.ok) return buyer.response;
+  const { user } = buyer;
 
   const title = `Ruta ${RUTA_LABEL[rutaCodigo] ?? rutaCodigo} · Grado ${grado} · ${
     COBERTURA_LABEL[cobertura] ?? cobertura
@@ -112,6 +109,7 @@ export async function POST(req: NextRequest) {
     },
   });
   if (existingPending) {
+    await grantBuyerAccess(buyer, existingPending.id);
     const pref = await createMpPreference({
       mode: "produccion",
       orderId: existingPending.id,
@@ -144,6 +142,8 @@ export async function POST(req: NextRequest) {
       },
     },
   });
+
+  await grantBuyerAccess(buyer, order.id);
 
   const pref = await createMpPreference({
     mode: "produccion",

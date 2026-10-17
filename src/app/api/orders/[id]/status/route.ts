@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/session";
+import { getGuest, getSessionUser } from "@/lib/session";
 import { periodoLabelFor, type Cobertura } from "@/lib/periodos";
 
 const RUTA_A_KEY: Record<string, string> = { BASE: "base", VISUAL: "visual", SEGUIMIENTO: "seguimiento", INTEGRAL: "integral" };
@@ -8,9 +8,14 @@ const RUTA_A_KEY: Record<string, string> = { BASE: "base", VISUAL: "visual", SEG
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const sessionUser = await getSessionUser();
+  const guest = await getGuest();
 
   const order = await prisma.order.findUnique({ where: { id }, include: { items: true } });
-  if (!order || !sessionUser || order.userId !== sessionUser.userId) {
+  // Un invitado (compró sin contraseña, ver buyer.ts) solo puede ver los
+  // pedidos que hizo desde este navegador.
+  const isOwner = !!order && sessionUser?.userId === order.userId;
+  const isGuestOrder = !!order && guest?.userId === order.userId && guest.orderIds.includes(order.id);
+  if (!order || (!isOwner && !isGuestOrder)) {
     return NextResponse.json({ error: "No encontrado" }, { status: 404 });
   }
 

@@ -59,11 +59,19 @@ function ConfirmacionContent() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => res.json())
-      .then((data: { account: { email: string; hasPassword: boolean } | null }) => {
-        if (data.account && !data.account.hasPassword) {
-          setNeedsPassword({ email: data.account.email });
+      .then(
+        (data: {
+          account: { email: string; hasPassword: boolean } | null;
+          guest: { email: string; hasPassword: boolean } | null;
+        }) => {
+          // Una compra como invitado (sin contraseña) ya no abre sesión: la
+          // biblioteca queda bloqueada hasta crear la contraseña.
+          const comprador = data.guest ?? data.account;
+          if (comprador && !comprador.hasPassword) {
+            setNeedsPassword({ email: comprador.email });
+          }
         }
-      })
+      )
       .catch(() => {})
       .finally(() => setAccountChecked(true));
   }, []);

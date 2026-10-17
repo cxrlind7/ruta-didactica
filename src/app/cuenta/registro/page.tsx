@@ -61,8 +61,8 @@ function RegistroForm() {
         <Image src="/brand/logo.png" alt="Ruta Didáctica" width={160} height={54} className="h-10 w-auto mx-auto mb-6" />
         <h1 className="text-2xl font-extrabold text-rd-navy">Crea tu cuenta docente</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Regístrate para comprar y guardar tus materiales. Si ya compraste antes con este correo, esto le pone
-          contraseña a esa cuenta.
+          Regístrate para comprar y guardar tus materiales. Si acabas de comprar con este correo desde este
+          navegador, esto le pone contraseña a esa cuenta.
         </p>
       </div>
 

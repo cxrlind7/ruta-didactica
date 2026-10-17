@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { setSession } from "@/lib/session";
+import { grantBuyerAccess, resolveBuyer } from "@/lib/buyer";
 import { createMpOrder } from "@/lib/mercadoPagoOrder";
 import { getModoPago } from "@/lib/modoPago";
 import { RouteKey } from "@/lib/data";
@@ -93,12 +93,9 @@ export async function POST(req: NextRequest) {
   const [firstName, ...rest] = payerName ? payerName.split(" ") : [payerEmail.split("@")[0]];
   const lastName = rest.join(" ") || "Comprador";
 
-  const user = await prisma.user.upsert({
-    where: { email: payerEmail },
-    update: payerName ? { name: payerName } : {},
-    create: { email: payerEmail, name: payerName || undefined },
-  });
-  await setSession({ userId: user.id, email: user.email });
+  const buyer = await resolveBuyer(payerEmail, payerName);
+  if (!buyer.ok) return buyer.response;
+  const { user } = buyer;
 
   // Protección de doble cobro: si ya hay un pedido pendiente para exactamente
   // el mismo grado+ruta+cobertura+periodo, no se crea uno nuevo.
@@ -138,6 +135,8 @@ export async function POST(req: NextRequest) {
       },
     },
   });
+
+  await grantBuyerAccess(buyer, order.id);
 
   const mode = await getModoPago();
   const result = await createMpOrder({

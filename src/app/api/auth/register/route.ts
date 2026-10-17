@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { setSession } from "@/lib/session";
+import { clearGuest, getGuest, getSessionUser, setSession } from "@/lib/session";
 import { hashPassword } from "@/lib/password";
 
 export async function POST(req: NextRequest) {
@@ -24,17 +24,41 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Si el correo ya existe sin contraseña (compró como invitado), ponerle
+  // contraseña es reclamar esa cuenta y su biblioteca -- antes bastaba con
+  // escribir el correo. Ahora solo se permite desde el navegador con el que
+  // se compró (permiso de invitado, ver buyer.ts) y con un pedido ya
+  // aprobado, o con una sesión vieja de esa misma cuenta.
+  const guest = await getGuest();
+  if (existing) {
+    const sessionUser = await getSessionUser();
+    const hasOwnSession = sessionUser?.userId === existing.id;
+    const isGuestOfThisAccount = guest?.userId === existing.id;
+    const hasApprovedGuestOrder =
+      isGuestOfThisAccount &&
+      (await prisma.order.count({
+        where: { id: { in: guest.orderIds }, userId: existing.id, status: "approved" },
+      })) > 0;
+
+    if (!hasOwnSession && !hasApprovedGuestOrder) {
+      return NextResponse.json(
+        {
+          error: isGuestOfThisAccount
+            ? "Tu pago todavía no se confirma. Intenta de nuevo en unos minutos."
+            : "Ya existe una cuenta con ese correo. Si compraste con él y no puedes crear tu contraseña, escríbenos por WhatsApp.",
+        },
+        { status: 409 }
+      );
+    }
+  }
+
   const passwordHash = await hashPassword(password);
-  // Si el correo ya existe (p. ej. porque compró antes del registro), esto
-  // reclama esa cuenta poniéndole contraseña por primera vez; si no existe,
-  // la crea desde cero.
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: { passwordHash, ...(name ? { name } : {}) },
-    create: { email, name, passwordHash },
-  });
+  const user = existing
+    ? await prisma.user.update({ where: { id: existing.id }, data: { passwordHash, ...(name ? { name } : {}) } })
+    : await prisma.user.create({ data: { email, name, passwordHash } });
 
   await setSession({ userId: user.id, email: user.email });
+  if (guest?.userId === user.id) await clearGuest();
 
   return NextResponse.json({ email: user.email, name: user.name });
 }

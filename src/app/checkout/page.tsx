@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { formatMXN, gradeLabel, routes, RUTA_CODE } from "@/lib/data";
 import RealCatalogCardCheckout from "@/components/RealCatalogCardCheckout";
 import LegalCheckbox from "@/components/LegalCheckbox";
+import LoginLink from "@/components/LoginLink";
 
 // Los enlaces fijos de Mercado Pago (modo producción) cobran una sola
 // combinación cobertura+modalidad por pago -- no se puede pagar varios
@@ -36,6 +37,7 @@ export default function CheckoutPage() {
   const [payWith, setPayWith] = useState<"enlace" | "tarjeta">("enlace");
   const [linkPurchasing, setLinkPurchasing] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkNeedsLogin, setLinkNeedsLogin] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -75,6 +77,7 @@ export default function CheckoutPage() {
   async function handleBuyLink() {
     setLinkPurchasing(true);
     setLinkError(null);
+    setLinkNeedsLogin(false);
     try {
       const res = await fetch("/api/checkout/link", {
         method: "POST",
@@ -91,6 +94,7 @@ export default function CheckoutPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setLinkError(data.error || "No se pudo iniciar el pago.");
+        setLinkNeedsLogin(!!data.needsLogin);
         return;
       }
       setAccountLocal(email.trim(), name.trim());
@@ -196,7 +200,10 @@ export default function CheckoutPage() {
               ) : (
                 <>
                   {linkError && (
-                    <p className="rounded-rd-sm bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{linkError}</p>
+                    <p className="rounded-rd-sm bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+                      {linkError}{" "}
+                      {linkNeedsLogin && <LoginLink email={email} />}
+                    </p>
                   )}
                   <button
                     type="button"

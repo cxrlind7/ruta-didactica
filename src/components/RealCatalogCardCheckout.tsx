@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CardPayment, initMercadoPago } from "@mercadopago/sdk-react";
 import { formatMXN } from "@/lib/data";
+import LoginLink from "@/components/LoginLink";
 
 // Igual que RealPaymentCheckout.tsx (los 3 productos de prueba) pero
 // apuntando a /api/checkout -- el catálogo real (grado+ruta+cobertura+
@@ -60,6 +61,7 @@ export default function RealCatalogCardCheckout({
 }: Props) {
   const [phase, setPhase] = useState<Phase>("form");
   const [message, setMessage] = useState<string | null>(null);
+  const [needsLogin, setNeedsLogin] = useState(false);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -130,6 +132,7 @@ export default function RealCatalogCardCheckout({
     if (!res.ok) {
       setPhase("error");
       setMessage(data.error || "No se pudo procesar el pago de prueba.");
+      setNeedsLogin(!!data.needsLogin);
       throw new Error(data.error || "orden_fallida");
     }
 
@@ -154,7 +157,9 @@ export default function RealCatalogCardCheckout({
   return (
     <div className="space-y-3">
       {message && phase !== "form" && (
-        <p className="rounded-rd-sm bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{message}</p>
+        <p className="rounded-rd-sm bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
+          {message} {needsLogin && <LoginLink email={payerEmail} />}
+        </p>
       )}
       <p className="text-xs text-slate-400">Total {formatMXN(totalMXN)}</p>
       <CardPayment

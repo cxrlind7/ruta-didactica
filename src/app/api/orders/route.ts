@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { setSession } from "@/lib/session";
+import { grantBuyerAccess, resolveBuyer } from "@/lib/buyer";
 import { TEST_DOWNLOADS } from "@/lib/downloads";
 import { createMpOrder } from "@/lib/mercadoPagoOrder";
 
@@ -43,12 +43,9 @@ export async function POST(req: NextRequest) {
   const [firstName, ...rest] = payerName ? payerName.split(" ") : [payerEmail.split("@")[0]];
   const lastName = rest.join(" ") || "Comprador";
 
-  const user = await prisma.user.upsert({
-    where: { email: payerEmail },
-    update: payerName ? { name: payerName } : {},
-    create: { email: payerEmail, name: payerName || undefined },
-  });
-  await setSession({ userId: user.id, email: user.email });
+  const buyer = await resolveBuyer(payerEmail, payerName);
+  if (!buyer.ok) return buyer.response;
+  const { user } = buyer;
 
   const totalMXN = itemIds.reduce((sum, id) => sum + TEST_DOWNLOADS[id].priceMXN, 0);
 
@@ -61,6 +58,8 @@ export async function POST(req: NextRequest) {
       },
     },
   });
+
+  await grantBuyerAccess(buyer, order.id);
 
   const result = await createMpOrder({
     mode: "prueba",
